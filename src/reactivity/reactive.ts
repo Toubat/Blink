@@ -1,39 +1,36 @@
-import { isObservable, observable } from 'mobx';
-import { immutableHandler } from './baseHandler';
+import { isObservable, observable, toJS } from 'mobx';
+import { isObject } from '../shared';
 
-export enum ReactiveFlag {
-  IS_READONLY = '__b_isReadonly',
+export function reactive<T extends object>(target: T): T {
+  return createReactiveObject(target, false);
 }
 
-export type Target<T> = T extends object ? T : never;
-
-export type Reactive<T> = Target<T> & {
-  [ReactiveFlag.IS_READONLY]?: boolean;
-};
-
-export function reactive<T>(target: Target<T>): Reactive<T> {
-  return createReactiveObject<T>(target, false);
-}
-
-export function shallowReactive<T extends object>(target: Reactive<T>): Reactive<T> {
+export function shallowReactive<T extends object>(target: T): T {
   return createReactiveObject(target, true);
 }
 
-export function readonly<T extends object>(target: Target<T>): Reactive<T> {
-  if (isReadonly(target)) return target;
+export function toRaw(target, shallow: boolean = false) {
+  let rawTarget = target;
 
-  return new Proxy(target, immutableHandler);
+  if (isReactive(target)) {
+    rawTarget = toJS(target);
+  }
+
+  // recursively convert nested reactive objects to raw objects
+  if (!shallow && isObject(rawTarget)) {
+    for (const key in rawTarget) {
+      rawTarget[key] = toRaw(rawTarget[key]);
+    }
+  }
+
+  return rawTarget;
 }
 
 export function isReactive(target) {
-  return isObservable(target) && !isReadonly(target);
+  return isObservable(target);
 }
 
-export function isReadonly(target) {
-  return !!target[ReactiveFlag.IS_READONLY];
-}
-
-function createReactiveObject<T>(target: Target<T>, shallow: boolean): Reactive<T> {
+function createReactiveObject<T extends object>(target: T, shallow: boolean): T {
   if (isReactive(target)) return target;
 
   return observable(target, {}, { deep: !shallow });

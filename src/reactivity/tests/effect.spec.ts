@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { autorun } from 'mobx';
+import { autorun, configure } from 'mobx';
 import { reactive } from '../reactive';
+
+configure({
+  enforceActions: 'never',
+  useProxies: 'always',
+});
 
 describe('reactivity/effect', () => {
   it('nested effect should only be called once', () => {

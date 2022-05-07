@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { autorun, configure, observable, trace } from 'mobx';
-import { isReactive, reactive, shallowReactive, readonly, isReadonly } from '../reactive';
+import { isReactive, reactive, shallowReactive, toRaw } from '../reactive';
 
 configure({
   enforceActions: 'never',
@@ -120,33 +120,51 @@ describe('reactivity/reactive', () => {
     expect(dummy).to.equal(3);
   });
 
-  it('readonly should throw error upon set', () => {
-    const observed = readonly({ foo: { bar: 1 } });
+  it('toRaw should convert reactive to plain object', () => {
+    const spyToRaw = vi.fn().mockImplementation(toRaw);
+    const raw = spyToRaw(
+      reactive({
+        foo: { bar: 1 },
+        arr: [1, 2, 3],
+        map: new Map([['1', { foo: 1 }]]),
+        set: new Set([{ foo: 1 }]),
+      })
+    );
 
     // should not be reactive
-    expect(isReactive(observed)).to.equal(false);
-    expect(isReadonly(observed.foo)).to.equal(true);
-    expect(() => (observed.foo.bar = 2)).toThrowError();
+    expect(isReactive(raw)).to.equal(false);
+    expect(isReactive(raw.foo)).to.equal(false);
+    expect(isReactive(raw.foo.bar)).to.equal(false);
+    expect(isReactive(raw.arr)).to.equal(false);
+    expect(isReactive(raw.map)).to.equal(false);
+    expect(isReactive(raw.map.get('1'))).to.equal(false);
+    expect(isReactive(raw.set)).to.equal(false);
+    expect(isReactive(raw.set.values().next().value)).to.equal(false);
   });
 
-  it('readonly should make nested reactive readonly', () => {
-    const observed = readonly({
-      foo: reactive({ bar: 1, arr: [1, 2, 3], map: new Map(), set: new Set() }),
+  it('toRaw should proceed conversion recursively', () => {
+    const raw = toRaw({
+      foo: reactive({
+        foo: { bar: 1 },
+      }),
     });
 
-    expect(isReactive(observed)).to.equal(false);
-    expect(isReactive(observed.foo)).to.equal(false);
-    expect(isReadonly(observed.foo)).to.equal(true);
+    // should not be reactive
+    expect(isReactive(raw)).to.equal(false);
+    expect(isReactive(raw.foo)).to.equal(false);
+    expect(isReactive(raw.foo.foo)).to.equal(false);
+    expect(isReactive(raw.foo.foo.bar)).to.equal(false);
+  });
 
-    // should not set value
-    expect(() => (observed.foo.bar = 2)).toThrowError();
-    // should not manupulate array
-    expect(() => (observed.foo.arr[0] = 2)).toThrowError();
-    expect(() => observed.foo.arr.push(4)).toThrowError();
-    expect(() => observed.foo.arr.pop()).toThrowError();
-    // should not manupulate map
-    expect(() => observed.foo.map.set('1', 1)).toThrowError();
-    // should not manupulate set
-    expect(() => observed.foo.set.add(1)).toThrowError();
+  it('shallow toRaw should not proceed conversion recursively', () => {
+    const spyToRaw = vi.fn().mockImplementation(toRaw);
+    const raw = spyToRaw({ foo: reactive({ bar: 1 }) }, true);
+
+    // should not be reactive
+    expect(isReactive(raw)).to.equal(false);
+    // should be reactive
+    expect(isReactive(raw.foo)).to.equal(true);
+    // should call toRaw once
+    expect(spyToRaw).toHaveBeenCalledTimes(1);
   });
 });
