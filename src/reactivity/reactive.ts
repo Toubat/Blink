@@ -1,6 +1,6 @@
 import { isObservable, observable, toJS } from 'mobx';
 import { isObject, isFunction } from '../shared';
-import { unRef } from './ref';
+import { isRef, unRef } from './ref';
 
 export enum ReactiveFlag {
   REACTIVE = '__b_reactive',
@@ -20,10 +20,15 @@ export function readonly<T extends object>(target: T): T {
   return createReactiveObject(target, false, true);
 }
 
-export function toRaw(target, shallow: boolean = false) {
-  let rawTarget = target;
+export function shallowReadonly<T extends object>(target: T): T {
+  return createReactiveObject(target, true, true);
+}
 
-  if (isReactive(target)) {
+export function toRaw(target, shallow: boolean = false) {
+  let rawTarget = unRef(target);
+
+  // unobserve target if it is observable
+  if (isObservable(rawTarget)) {
     rawTarget = toJS(target);
   }
 
@@ -46,14 +51,17 @@ export function isReadonly(target) {
 }
 
 function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean): T {
-  if (isReactive(target)) return target;
+  // avoid trying to observe a readonly object, and avoid observing reactive object twice
+  if (isReadonly(target) || (isReactive(target) && !readonly)) {
+    return target;
+  }
 
-  const observed = observable(target, {}, { deep: !shallow });
+  const observed = isObservable(target) ? target : observable(target, {}, { deep: !shallow });
 
-  return reactiveProxy(observed, shallow, readonly);
+  return createReactiveProxy(observed, shallow, readonly);
 }
 
-function reactiveProxy(target, shallow, readonly) {
+function createReactiveProxy<T extends object>(target: T, shallow: boolean, readonly: boolean): T {
   return new Proxy(target, {
     get(target, key) {
       if (key === ReactiveFlag.REACTIVE) {
@@ -64,10 +72,12 @@ function reactiveProxy(target, shallow, readonly) {
 
       let value = unRef(Reflect.get(target, key));
 
+      // stop recurse if value is primitive data type
       if (!isObject(value) && !isFunction(value)) {
         return value;
       }
 
+      // bind target to function's this
       if (isFunction(value)) {
         value = value.bind(target);
       }
@@ -76,11 +86,11 @@ function reactiveProxy(target, shallow, readonly) {
         return value;
       }
 
-      return reactiveProxy(value, shallow, !readonly);
+      return createReactiveProxy(value, shallow, readonly);
     },
     set(target, key, value) {
       if (readonly) {
-        throw new Error(`Cannot set property ${String(key)} on reaonly object`);
+        throw new Error(`Cannot set property ${String(key)} on readonly object`);
       }
       return Reflect.set(target, key, value);
     },
