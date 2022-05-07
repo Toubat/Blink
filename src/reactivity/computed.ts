@@ -1,5 +1,6 @@
-import { EMPTY_FUNCTION, isObject } from '../shared';
+import { NOOP, isObject } from '../shared';
 import { computed as _computed } from 'mobx';
+import { ReactiveFlag } from './reactive';
 
 type ComputedGetter<T> = () => T;
 type ComputedSetter<T> = (value: T) => void;
@@ -14,6 +15,8 @@ class ComputedImpl<T> {
   private _setter: ComputedSetter<T>;
   private _runner;
   private _value: T = undefined as any;
+  // reactive flags
+  public [ReactiveFlag.REF] = true;
 
   constructor(getter, setter) {
     this._getter = getter;
@@ -41,7 +44,7 @@ export function computed<T>(options: ComputedGetter<T> | ComputedOptions<T>) {
     setter = (options as ComputedOptions<T>).set;
   } else {
     getter = options as ComputedGetter<T>;
-    setter = EMPTY_FUNCTION;
+    setter = NOOP;
   }
 
   return new ComputedImpl<T>(getter, setter);

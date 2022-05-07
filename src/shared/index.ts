@@ -1,4 +1,4 @@
-export const EMPTY_FUNCTION = () => {};
+export const NOOP = () => {};
 
 export const isObject = (val) => {
   return val !== null && typeof val === 'object';

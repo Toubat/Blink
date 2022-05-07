@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { autorun, configure, observable, trace } from 'mobx';
-import { isReactive, reactive, shallowReactive, toRaw } from '../reactive';
+import { isReactive, reactive, readonly, shallowReactive, toRaw, isReadonly } from '../reactive';
 
 configure({
   enforceActions: 'never',
@@ -50,6 +50,15 @@ describe('reactivity/reactive', () => {
     observed.nested.foo = 2;
     expect(dummy).to.equal(1);
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('readonly', () => {
+    const observed = readonly({ foo: 1 });
+
+    expect(isReactive(observed)).to.equal(false);
+    expect(isReadonly(observed)).to.equal(true);
+
+    expect(() => (observed.foo = 2)).toThrowError();
   });
 
   it('reactive array', () => {
@@ -103,6 +112,9 @@ describe('reactivity/reactive', () => {
     expect(dummy).to.equal(1);
     observed.set('foo', 2);
     expect(dummy).to.equal(2);
+
+    observed.delete('foo');
+    expect(dummy).to.equal(undefined);
   });
 
   it('reactive Set', () => {
@@ -111,13 +123,14 @@ describe('reactivity/reactive', () => {
     let dummy;
 
     autorun(() => {
-      dummy = observed.size;
+      dummy = [...observed];
     });
 
-    expect(dummy).to.equal(1);
+    expect(dummy).to.deep.equal([1]);
     observed.add(2);
-    observed.add(3);
-    expect(dummy).to.equal(3);
+    expect(dummy).to.deep.equal([1, 2]);
+    observed.delete(1);
+    expect(dummy).to.deep.equal([2]);
   });
 
   it('toRaw should convert reactive to plain object', () => {

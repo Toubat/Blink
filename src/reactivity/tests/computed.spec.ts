@@ -1,13 +1,19 @@
-import { autorun } from 'mobx';
+import { autorun, configure } from 'mobx';
 import { describe, it, expect, vi } from 'vitest';
 import { computed } from '../computed';
-import { reactive } from '../reactive';
+import { reactive, ReactiveFlag } from '../reactive';
+
+configure({
+  enforceActions: 'never',
+  useProxies: 'always',
+});
 
 describe('reactivity/computed', () => {
   it('happy path', () => {
     const observed = reactive({ foo: 1 });
     const foo = computed<number>(() => observed.foo + 1);
 
+    expect(foo[ReactiveFlag.REF]).to.equal(true);
     expect(foo.value).to.equal(2);
   });
 
@@ -81,5 +87,25 @@ describe('reactivity/computed', () => {
     square.value = 4;
     expect(spyGetter).toHaveBeenCalledTimes(0);
     expect(spySetter).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not access "value" field when computed is inside reactive ', () => {
+    const observed = reactive({ foo: 1 });
+    const data = computed(() => observed.foo + 1);
+    const nested = reactive({ data });
+    let dummy;
+
+    expect(nested.data).to.equal(2);
+    observed.foo = 2;
+    expect(nested.data).to.equal(3);
+
+    autorun(() => {
+      dummy = nested.data;
+    });
+
+    // should still be call effect
+    expect(dummy).to.equal(3);
+    observed.foo = 3;
+    expect(dummy).to.equal(4);
   });
 });
