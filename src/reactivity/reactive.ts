@@ -1,19 +1,40 @@
 import { isObservable, observable } from 'mobx';
+import { immutableHandler } from './baseHandler';
 
-type ReactiveObject<T extends object> = T;
-
-export function reactive<T extends object>(target: ReactiveObject<T>): ReactiveObject<T> {
-  return createReactiveObject<ReactiveObject<T>>(target, false);
+export enum ReactiveFlag {
+  IS_READONLY = '__b_isReadonly',
 }
 
-export function shallowReactive<T extends object>(target: ReactiveObject<T>): ReactiveObject<T> {
+export type Target<T> = T extends object ? T : never;
+
+export type Reactive<T> = Target<T> & {
+  [ReactiveFlag.IS_READONLY]?: boolean;
+};
+
+export function reactive<T>(target: Target<T>): Reactive<T> {
+  return createReactiveObject<T>(target, false);
+}
+
+export function shallowReactive<T extends object>(target: Reactive<T>): Reactive<T> {
   return createReactiveObject(target, true);
 }
 
-export function isReactive(target: any) {
-  return isObservable(target);
+export function readonly<T extends object>(target: Target<T>): Reactive<T> {
+  if (isReadonly(target)) return target;
+
+  return new Proxy(target, immutableHandler);
 }
 
-function createReactiveObject<T extends object>(target: T, shalow: boolean): T {
-  return observable<T>(target, {}, { deep: !shalow });
+export function isReactive(target) {
+  return isObservable(target) && !isReadonly(target);
+}
+
+export function isReadonly(target) {
+  return !!target[ReactiveFlag.IS_READONLY];
+}
+
+function createReactiveObject<T>(target: Target<T>, shallow: boolean): Reactive<T> {
+  if (isReactive(target)) return target;
+
+  return observable(target, {}, { deep: !shallow });
 }

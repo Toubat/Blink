@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { autorun, observable } from 'mobx';
+import { autorun } from 'mobx';
+import { reactive } from '../reactive';
 
 describe('reactivity/effect', () => {
-  it('nested effect', () => {
+  it('nested effect should only be called once', () => {
     const data = { foo: 1 };
-    const observed = observable(data);
+    const observed = reactive(data);
     let dummy;
 
     const childSpy = vi.fn().mockImplementation(() => {
