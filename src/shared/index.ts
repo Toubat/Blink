@@ -11,3 +11,5 @@ export const isFunction = (val: unknown) => {
 export const isPrimitive = (val: unknown) => {
   return !isObject(val) && !isFunction(val);
 };
+
+export const extend = Object.assign;

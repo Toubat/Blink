@@ -228,6 +228,41 @@ describe('reactivity/reactive', () => {
     expect(dummy).to.equal(undefined);
   });
 
+  it('for each reactive Map', () => {
+    const observed = reactive(
+      new Map([
+        ['foo', 1],
+        ['bar', 2],
+      ])
+    );
+    let dummy;
+    let spy = vi.fn().mockImplementation(() => {
+      observed.forEach((value) => {
+        dummy = value;
+      });
+    });
+    autorun(spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    observed.set('foo', 2);
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('for each reactive Set', () => {
+    const observed = reactive(new Set([1, 2, 3]));
+    let dummy;
+    let spy = vi.fn().mockImplementation(() => {
+      observed.forEach((value) => {
+        dummy = value;
+      });
+    });
+    autorun(spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    observed.add(4);
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
   it('reactive Set', () => {
     const observed = reactive(new Set<number>());
     observed.add(1);
