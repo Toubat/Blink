@@ -1,5 +1,5 @@
 import { isObservable, observable, toJS } from 'mobx';
-import { isObject, isFunction } from '../shared';
+import { isObject, isFunction, isPrimitive } from '../shared';
 import { isRef, unRef } from './ref';
 
 export enum ReactiveFlag {
@@ -56,12 +56,16 @@ function createReactiveObject<T extends object>(target: T, shallow: boolean, rea
     return target;
   }
 
-  const observed = isObservable(target) ? target : observable(target, {}, { deep: !shallow });
+  const observed =
+    isObservable(target) || readonly ? target : observable(target, {}, { deep: !shallow });
 
   return createReactiveProxy(observed, shallow, readonly);
 }
 
 function createReactiveProxy<T extends object>(target: T, shallow: boolean, readonly: boolean): T {
+  // stop recurse if value is primitive data type
+  if (isPrimitive(target)) return target;
+
   return new Proxy(target, {
     get(target, key) {
       if (key === ReactiveFlag.REACTIVE) {
@@ -72,12 +76,7 @@ function createReactiveProxy<T extends object>(target: T, shallow: boolean, read
 
       let value = unRef(Reflect.get(target, key));
 
-      // stop recurse if value is primitive data type
-      if (!isObject(value) && !isFunction(value)) {
-        return value;
-      }
-
-      // bind target to function's this
+      // bind target to function's thisArg
       if (isFunction(value)) {
         value = value.bind(target);
       }
@@ -90,9 +89,14 @@ function createReactiveProxy<T extends object>(target: T, shallow: boolean, read
     },
     set(target, key, value) {
       if (readonly) {
-        throw new Error(`Cannot set property ${String(key)} on readonly object`);
+        console.warn(`Cannot set property ${String(key)} on readonly object`);
       }
       return Reflect.set(target, key, value);
+    },
+    apply(target, thisArg, args) {
+      const value = Reflect.apply(target as Function, thisArg, args);
+
+      return createReactiveProxy(value, shallow, readonly);
     },
   });
 }

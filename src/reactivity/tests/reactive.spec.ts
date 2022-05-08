@@ -63,56 +63,68 @@ describe('reactivity/reactive', () => {
 
   it('readonly', () => {
     const observed = readonly({ foo: 1 });
+    console.warn = vi.fn();
 
     expect(isReactive(observed)).to.equal(false);
     expect(isReadonly(observed)).to.equal(true);
 
-    expect(() => (observed.foo = 2)).toThrowError();
+    observed.foo = 2;
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it('should make nested object readonly', () => {
     const observed = readonly({ nested: { foo: 1 } });
+    console.warn = vi.fn();
 
     expect(isReactive(observed)).to.equal(false);
     expect(isReadonly(observed)).to.equal(true);
     expect(isReactive(observed.nested)).to.equal(false);
     expect(isReadonly(observed.nested)).to.equal(true);
-    expect(() => (observed.nested.foo = 2)).toThrowError();
+
+    observed.nested.foo = 2;
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it('should make array readonly', () => {
     const observed = readonly<any[]>([1, 2, { foo: 3 }]);
+    console.warn = vi.fn();
 
     expect(isReactive(observed)).to.equal(false);
     expect(isReadonly(observed)).to.equal(true);
 
-    expect(() => (observed[0] = 2)).toThrowError();
-    expect(() => (observed[2].foo = 2)).toThrowError();
+    observed[0] = 2;
+    observed[2].foo = 2;
+    expect(console.warn).toHaveBeenCalledTimes(2);
   });
 
   it('should make nested array readonly', () => {
     const observed = readonly<any>({ nested: [1, 2, { foo: 3 }] });
+    console.warn = vi.fn();
 
     expect(isReactive(observed.nested)).to.equal(false);
     expect(isReadonly(observed.nested)).to.equal(true);
 
-    expect(() => (observed.nested[0] = 2)).toThrowError();
-    expect(() => (observed.nested[2].foo = 2)).toThrowError();
+    observed.nested[0] = 2;
+    observed.nested[2].foo = 2;
+    expect(console.warn).toHaveBeenCalledTimes(2);
   });
 
   it('should make wrapped reactive readonly', () => {
     const observed = readonly(reactive({ foo: { bar: 1 } }));
+    console.warn = vi.fn();
 
     expect(isReactive(observed)).to.equal(false);
     expect(isReadonly(observed)).to.equal(true);
 
     expect(isReadonly(observed.foo)).to.equal(true);
-    expect(() => (observed.foo.bar = 2)).toThrowError();
+    observed.foo.bar = 2;
+    expect(console.warn).toHaveBeenCalledTimes(1);
 
     const wrapped = readonly({ foo: reactive({ bar: 1 }) });
 
     expect(isReadonly(wrapped.foo)).to.equal(true);
-    expect(() => (wrapped.foo.bar = 2)).toThrowError();
+    wrapped.foo.bar = 2;
+    expect(console.warn).toHaveBeenCalledTimes(2);
   });
 
   it('shallow readonly should unobserve nested data', () => {
@@ -122,6 +134,37 @@ describe('reactivity/reactive', () => {
     expect(isReadonly(observed)).to.equal(true);
     expect(isReactive(observed.nested)).to.equal(false);
     expect(isReadonly(observed.nested)).to.equal(false);
+  });
+
+  it('readonly prevent modification inside Map', () => {
+    const observed = readonly(new Map([['foo', 1]]));
+    let dummy;
+    const spy = vi.fn().mockImplementation(() => {
+      dummy = observed.get('foo');
+    });
+    autorun(spy);
+
+    expect(isReadonly(observed)).to.equal(true);
+    observed.set('foo', 2);
+    expect(dummy).to.equal(1);
+  });
+
+  it('readonly still allow call function that modify reactive value', () => {
+    const data = reactive({ foo: 1 });
+    const observed = readonly({
+      add(val) {
+        data.foo += val;
+      },
+    });
+    let dummy;
+
+    autorun(() => {
+      dummy = data.foo;
+    });
+
+    expect(dummy).to.equal(1);
+    observed.add(2);
+    expect(dummy).to.equal(3);
   });
 
   it('reactive array', () => {
@@ -137,7 +180,7 @@ describe('reactivity/reactive', () => {
     expect(dummy).to.equal(2);
   });
 
-  it('array push', () => {
+  it('array methods', () => {
     const observed = reactive([1, 2, 3]);
     let dummy;
     let spy = vi.fn().mockImplementation(() => {
@@ -153,6 +196,10 @@ describe('reactivity/reactive', () => {
     observed.splice(0, 1);
     expect(spy).toHaveBeenCalledTimes(3);
     expect(dummy).to.equal(2);
+
+    // sliced array should not be reactive
+    const clone = observed.slice(0, 2);
+    expect(isReactive(clone)).to.equal(false);
   });
 
   it('nested observable', () => {
@@ -164,7 +211,7 @@ describe('reactivity/reactive', () => {
   });
 
   it('reactive Map', () => {
-    const observed = reactive(new Map());
+    const observed = reactive(new Map<string, any>());
     observed.set('foo', { bar: 1 });
     let dummy;
 
@@ -173,6 +220,7 @@ describe('reactivity/reactive', () => {
     });
 
     expect(dummy).to.deep.equal({ bar: 1 });
+    expect(isReactive(observed.get('foo'))).to.equal(true);
 
     observed.set('foo', 2);
     expect(dummy).to.equal(2);
@@ -181,19 +229,17 @@ describe('reactivity/reactive', () => {
   });
 
   it('reactive Set', () => {
-    const observed = reactive(new Set());
+    const observed = reactive(new Set<number>());
     observed.add(1);
     let dummy;
 
     autorun(() => {
-      dummy = [...observed];
+      dummy = observed.has(1);
     });
 
-    expect(dummy).to.deep.equal([1]);
-    observed.add(2);
-    expect(dummy).to.deep.equal([1, 2]);
+    expect(dummy).to.deep.equal(true);
     observed.delete(1);
-    expect(dummy).to.deep.equal([2]);
+    expect(dummy).to.deep.equal(false);
   });
 
   it('toRaw should convert reactive to plain object', () => {
