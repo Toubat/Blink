@@ -137,14 +137,16 @@ describe('reactivity/reactive', () => {
     expect(console.warn).toHaveBeenCalledTimes(2);
   });
 
-  it('changes is wrapped reactive object should not be propagated', () => {
+  it('changes is readonly should not be propagated to original reactive object', () => {
     const wrapped = reactive({ foo: { bar: 1 } });
     const observed = readonly(wrapped);
-    const spy = vi.fn().mockImplementation(() => observed.foo.bar);
+    const spy = vi.fn().mockImplementation(() => wrapped.foo.bar);
+    console.warn = vi.fn();
     autorun(spy);
 
-    wrapped.foo.bar = 2;
-    expect(spy).toHaveBeenCalledTimes(2);
+    observed.foo.bar = 2;
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it('shallow readonly should unobserve nested data', () => {
