@@ -36,7 +36,6 @@ function createSetter<T extends object>(isShallow: boolean, isReadonly: boolean)
 
 function createCaller<T extends object>(isShallow: boolean, isReadonly: boolean) {
   return function apply(target: T, thisArg, args) {
-    // console.log('target', thisArg instanceof Map);
     const value = Reflect.apply(target as Function, thisArg, args);
 
     return createReactiveProxy(value, isShallow, isReadonly);

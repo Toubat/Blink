@@ -129,16 +129,23 @@ describe('reactivity/reactive', () => {
 
   it('shallow readonly should unobserve nested data', () => {
     const observed = shallowReadonly({ nested: { foo: 1 } });
+    console.warn = vi.fn();
 
     expect(isReactive(observed)).to.equal(false);
     expect(isReadonly(observed)).to.equal(true);
     expect(isReactive(observed.nested)).to.equal(false);
     expect(isReadonly(observed.nested)).to.equal(false);
+
+    // change nested data
+    observed.nested.foo = 2;
+    expect(console.warn).toHaveBeenCalledTimes(0);
   });
 
   it('readonly prevent modification inside Map', () => {
     const observed = readonly(new Map([['foo', 1]]));
     let dummy;
+    console.warn = vi.fn();
+
     const spy = vi.fn().mockImplementation(() => {
       dummy = observed.get('foo');
     });
@@ -146,7 +153,17 @@ describe('reactivity/reactive', () => {
 
     expect(isReadonly(observed)).to.equal(true);
     observed.set('foo', 2);
+    expect(console.warn).toHaveBeenCalledTimes(1);
     expect(dummy).to.equal(1);
+  });
+
+  it('readonly prevent modification inside Set', () => {
+    const observed = readonly(new Set([1, 2, 3]));
+    console.warn = vi.fn();
+
+    expect(isReadonly(observed)).to.equal(true);
+    observed.add(4);
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it('readonly still allow call function that modify reactive value', () => {
@@ -278,8 +295,7 @@ describe('reactivity/reactive', () => {
   });
 
   it('toRaw should convert reactive to plain object', () => {
-    const spyToRaw = vi.fn().mockImplementation(toRaw);
-    const raw = spyToRaw(
+    const raw = toRaw(
       readonly(
         reactive({
           foo: { bar: 1 },
@@ -299,6 +315,16 @@ describe('reactivity/reactive', () => {
     expect(isReactive(raw.map.get('1'))).to.equal(false);
     expect(isReactive(raw.set)).to.equal(false);
     expect(isReactive(raw.set.values().next().value)).to.equal(false);
+
+    // should not be readonly
+    expect(isReadonly(raw)).to.equal(false);
+    expect(isReadonly(raw.foo)).to.equal(false);
+    expect(isReadonly(raw.foo.bar)).to.equal(false);
+    expect(isReadonly(raw.arr)).to.equal(false);
+    expect(isReadonly(raw.map)).to.equal(false);
+    expect(isReadonly(raw.map.get('1'))).to.equal(false);
+    expect(isReadonly(raw.set)).to.equal(false);
+    expect(isReadonly(raw.set.values().next().value)).to.equal(false);
   });
 
   it('toRaw should proceed conversion recursively', () => {

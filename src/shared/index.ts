@@ -13,3 +13,14 @@ export const isPrimitive = (val: unknown) => {
 };
 
 export const extend = Object.assign;
+
+export const hasOwn = (val: object, key: string | symbol): key is keyof typeof val =>
+  Object.prototype.hasOwnProperty.call(val, key);
+
+export const toRawType = (value: unknown): string => {
+  return toTypeString(value).slice(8, -1);
+};
+
+export const toTypeString = (value: unknown): string => {
+  return Object.prototype.toString.call(value);
+};

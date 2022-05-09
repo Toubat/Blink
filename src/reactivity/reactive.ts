@@ -1,12 +1,34 @@
 import { isObservable, observable, toJS } from 'mobx';
-import { isObject, isFunction, isPrimitive, extend } from '../shared';
-import { getBaseHandler } from './baseHandler';
-import { isRef, unRef } from './ref';
+import { isObject, isPrimitive, toRawType } from '../shared';
+import { getBaseHandler } from './baseHandlers';
+import { getCollectionHandlers } from './collectionHandlers';
+import { unRef } from './ref';
 
 export enum ReactiveFlag {
   REACTIVE = '__b_reactive',
   REF = '__b_ref',
   READONLY = '__b_readonly',
+}
+
+const enum TargetType {
+  INVALID = 0,
+  COMMON = 1,
+  COLLECTION = 2,
+}
+
+function targetTypeMap(rawType: string) {
+  switch (rawType) {
+    case 'Object':
+    case 'Array':
+      return TargetType.COMMON;
+    case 'Map':
+    case 'Set':
+    case 'WeakMap':
+    case 'WeakSet':
+      return TargetType.COLLECTION;
+    default:
+      return TargetType.INVALID;
+  }
 }
 
 export function reactive<T extends object>(target: T): T {
@@ -71,7 +93,13 @@ export function createReactiveProxy<T extends object>(
   // stop recurse if value is primitive data type
   if (isPrimitive(target)) return target;
 
-  const baseHandler = getBaseHandler<T>(isShallow, isReadonly);
+  const targetType = targetTypeMap(toRawType(target));
 
-  return new Proxy(target, baseHandler);
+  // proxy handlers
+  const baseHandler = getBaseHandler(isShallow, isReadonly);
+  const collectionHandler = getCollectionHandlers(isShallow, isReadonly);
+
+  const handler = targetType === TargetType.COLLECTION ? collectionHandler : baseHandler;
+
+  return new Proxy(target, handler as ProxyHandler<T>);
 }
