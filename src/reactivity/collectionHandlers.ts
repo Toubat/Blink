@@ -42,6 +42,8 @@ function createInstrumentationGetter(isShallow: boolean, isReadonly: boolean) {
       return !isReadonly;
     } else if (key === ReactiveFlag.READONLY) {
       return isReadonly;
+    } else if (key === ReactiveFlag.RAW && isReadonly) {
+      return target;
     }
 
     const hasKey = hasOwn(instrumentations, key) && key in target;

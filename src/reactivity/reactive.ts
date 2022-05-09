@@ -1,13 +1,14 @@
 import { isObservable, observable, toJS } from 'mobx';
-import { isObject, isPrimitive, toRawType } from '../shared';
+import { isObject, isPrimitive, toRawType, warn } from '../shared';
 import { getBaseHandler } from './baseHandlers';
 import { getCollectionHandlers } from './collectionHandlers';
-import { unRef } from './ref';
+import { isRef, unRef } from './ref';
 
 export enum ReactiveFlag {
   REACTIVE = '__b_reactive',
   REF = '__b_ref',
   READONLY = '__b_readonly',
+  RAW = '__b_raw',
 }
 
 const enum TargetType {
@@ -48,7 +49,17 @@ export function shallowReadonly<T extends object>(target: T): T {
 }
 
 export function toRaw<T>(target: T, shallow: boolean = false): T {
-  let rawTarget = unRef(target);
+  let rawTarget = target;
+
+  // handle chain of readonly
+  while (isReadonly(rawTarget)) {
+    rawTarget = rawTarget[ReactiveFlag.RAW];
+  }
+
+  // handle chain of ref
+  while (isRef(rawTarget)) {
+    rawTarget = unRef(rawTarget);
+  }
 
   // unobserve target if it is observable
   if (isObservable(rawTarget)) {
@@ -76,6 +87,9 @@ export function isReadonly(target) {
 function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean): T {
   // avoid trying to observe a readonly object, and avoid observing reactive object twice
   if (isReadonly(target) || (isReactive(target) && !readonly)) {
+    warn(
+      `Attempt to observe a ${isReadonly(target) ? 'readonly object' : 'reactive object twice'}`
+    );
     return target;
   }
 

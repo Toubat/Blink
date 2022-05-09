@@ -8,6 +8,8 @@ function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean)
       return !isReadonly;
     } else if (key === ReactiveFlag.READONLY) {
       return isReadonly;
+    } else if (key === ReactiveFlag.RAW && isReadonly) {
+      return unRef(target);
     }
 
     const value = bind(target, unRef(Reflect.get(target, key, receiver)));

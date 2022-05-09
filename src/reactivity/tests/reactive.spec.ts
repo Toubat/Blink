@@ -339,6 +339,15 @@ describe('reactivity/reactive', () => {
     expect(isReadonly(raw.set.values().next().value)).to.equal(false);
   });
 
+  it('toRaw should convert readonly to plain object', () => {
+    const raw = toRaw(readonly({ foo: { bar: 1 } }));
+    console.warn = vi.fn();
+
+    // should not be readonly
+    raw.foo.bar = 2;
+    expect(console.warn).toHaveBeenCalledTimes(0);
+  });
+
   it('toRaw should proceed conversion recursively', () => {
     const raw = toRaw({
       foo: reactive({
@@ -379,5 +388,36 @@ describe('reactivity/reactive', () => {
     expect(isReactive(raw.foo)).to.equal(true);
     // should call toRaw once
     expect(spyToRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('extreme test', () => {
+    console.warn = vi.fn();
+    const observed = readonly(readonly(readonly(reactive(reactive({ foo: { bar: 1 } })))));
+
+    expect(console.warn).toHaveBeenCalledTimes(3);
+
+    const raw = toRaw(observed);
+
+    // should not be reactive
+    expect(isReactive(raw)).to.equal(false);
+    expect(isReactive(raw.foo)).to.equal(false);
+
+    // should not be readonly
+    expect(isReadonly(raw)).to.equal(false);
+    expect(isReadonly(raw.foo)).to.equal(false);
+  });
+
+  it('chain of computed', () => {
+    const observed = reactive({ foo: { bar: 1 } });
+    const data = computed(() => observed.foo.bar + 1);
+    const data2 = computed(() => data.value + 1);
+    const data3 = computed(() => data2.value + 1);
+    const data4 = computed(() => data3.value + 1);
+
+    observed.foo.bar = 2;
+    expect(data4.value).to.equal(6);
+
+    const raw = toRaw(data4);
+    expect(raw).to.equal(6);
   });
 });
