@@ -8,6 +8,7 @@ import {
   toRaw,
   isReadonly,
   shallowReadonly,
+  isShallow,
 } from '../reactive';
 import { computed } from '../computed';
 
@@ -435,5 +436,21 @@ describe('reactivity/reactive', () => {
 
     const raw = toRaw(data4);
     expect(raw).to.equal(6);
+  });
+
+  it('should distinguish shallow object', () => {
+    const observed = shallowReactive({ foo: { bar: 1 } });
+
+    expect(isShallow(observed)).toBe(true);
+    // already a plain object
+    expect(isShallow(observed.foo)).toBe(false);
+  });
+
+  it('should distinguish shallow Map', () => {
+    const observed = shallowReactive(new Map([['foo', { bar: 1 }]]));
+
+    expect(isShallow(observed)).toBe(true);
+    // already a plain object
+    expect(isShallow(observed.get('foo'))).toBe(false);
   });
 });

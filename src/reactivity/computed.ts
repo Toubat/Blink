@@ -1,6 +1,7 @@
 import { NOOP, isObject } from '../shared';
 import { computed as _computed } from 'mobx';
 import { ReactiveFlag } from './reactive';
+import { Ref } from './ref';
 
 type ComputedGetter<T> = () => T;
 type ComputedSetter<T> = (value: T) => void;
@@ -10,13 +11,13 @@ export interface ComputedOptions<T> {
   set: ComputedSetter<T>;
 }
 
-class ComputedImpl<T> {
+export class ComputedImpl<T> {
   private _getter: ComputedGetter<T>;
   private _setter: ComputedSetter<T>;
   private _runner;
   private _value: T = undefined as any;
   // reactive flags
-  public [ReactiveFlag.REF] = true;
+  public readonly __b_ref = true;
 
   constructor(getter, setter) {
     this._getter = getter;
@@ -35,7 +36,7 @@ class ComputedImpl<T> {
   }
 }
 
-export function computed<T>(options: ComputedGetter<T> | ComputedOptions<T>) {
+export function computed<T>(options: ComputedGetter<T> | ComputedOptions<T>): Ref<T> {
   let getter: ComputedGetter<T>;
   let setter: ComputedSetter<T>;
 

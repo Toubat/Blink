@@ -108,4 +108,18 @@ describe('reactivity/computed', () => {
     observed.foo = 3;
     expect(dummy).to.equal(4);
   });
+
+  it('should set computed value without calling value()', () => {
+    const observed = reactive({ foo: 1 });
+    const data = reactive({
+      num: computed<number>({
+        get: () => observed.foo + 1,
+        set: (value) => (observed.foo = value - 1),
+      }),
+    });
+
+    expect(data.num).to.equal(2);
+    data.num = 3;
+    expect(observed.foo).to.equal(2);
+  });
 });

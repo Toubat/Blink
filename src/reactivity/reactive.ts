@@ -2,20 +2,24 @@ import { isObservable, observable, toJS } from 'mobx';
 import { isObject, isPrimitive, toRawType, warn } from '../shared';
 import { getBaseHandler } from './baseHandlers';
 import { getCollectionHandlers } from './collectionHandlers';
-import { isRef, unRef } from './ref';
+import { ComputedImpl } from './computed';
+import { isRef, Ref, RefImpl, unRef } from './ref';
 
 export enum ReactiveFlag {
   REACTIVE = '__b_reactive',
-  REF = '__b_ref',
   READONLY = '__b_readonly',
+  SHALLOW = '__b_shallow',
+  REF = '__b_ref',
   RAW = '__b_raw',
 }
 
-const enum TargetType {
+export const enum TargetType {
   INVALID = 0,
   COMMON = 1,
   COLLECTION = 2,
 }
+
+export type UnwrapRef<T> = T extends Ref<infer V> ? V : T;
 
 function targetTypeMap(rawType: string) {
   switch (rawType) {
@@ -82,6 +86,10 @@ export function isReactive(target) {
 
 export function isReadonly(target) {
   return isObject(target) && !!target[ReactiveFlag.READONLY];
+}
+
+export function isShallow(target) {
+  return isObject(target) && !!target[ReactiveFlag.SHALLOW];
 }
 
 function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean): T {

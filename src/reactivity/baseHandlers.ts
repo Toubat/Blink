@@ -1,6 +1,6 @@
 import { bind, isFunction, warn } from '../shared';
-import { createReactiveProxy, ReactiveFlag } from './reactive';
-import { unRef } from './ref';
+import { createReactiveProxy, ReactiveFlag, UnwrapRef } from './reactive';
+import { isRef, unRef } from './ref';
 
 function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean) {
   return function get(target: T, key: string | symbol, receiver: object) {
@@ -8,6 +8,8 @@ function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean)
       return !isReadonly;
     } else if (key === ReactiveFlag.READONLY) {
       return isReadonly;
+    } else if (key === ReactiveFlag.SHALLOW) {
+      return isShallow;
     } else if (key === ReactiveFlag.RAW && isReadonly) {
       return unRef(target);
     }
@@ -24,6 +26,14 @@ function createSetter<T extends object>(isShallow: boolean, isReadonly: boolean)
       warn(`Cannot set key "${String(key)}" on readonly object`);
       return true;
     }
+
+    const res = Reflect.get(target, key);
+
+    if (isRef(res) && !isRef(value)) {
+      res.value = value;
+      return true;
+    }
+
     return Reflect.set(target, key, value, receiver);
   };
 }
@@ -63,7 +73,7 @@ const shallowReadonlyHandler = {
 export function getBaseHandler<T extends object>(
   isShallow: boolean,
   isReadonly: boolean
-): ProxyHandler<T> {
+): ProxyHandler<UnwrapRef<T>> {
   return isReadonly
     ? isShallow
       ? shallowReadonlyHandler

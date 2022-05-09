@@ -1,5 +1,5 @@
 import { bind, hasOwn, warn } from '../shared';
-import { createReactiveProxy, ReactiveFlag } from './reactive';
+import { createReactiveProxy, ReactiveFlag, UnwrapRef } from './reactive';
 
 // Adapted from: Vue.js (reactivity/src/collectionHandlers.ts)
 type IterableCollections = Map<any, any> | Set<any>;
@@ -42,6 +42,8 @@ function createInstrumentationGetter(isShallow: boolean, isReadonly: boolean) {
       return !isReadonly;
     } else if (key === ReactiveFlag.READONLY) {
       return isReadonly;
+    } else if (key === ReactiveFlag.SHALLOW) {
+      return isShallow;
     } else if (key === ReactiveFlag.RAW && isReadonly) {
       return target;
     }
@@ -72,7 +74,7 @@ const shallowReadonlyCollectionHandlers = {
 export function getCollectionHandlers(
   isShallow: boolean,
   isReadonly: boolean
-): ProxyHandler<CollectionTypes> {
+): ProxyHandler<UnwrapRef<CollectionTypes>> {
   return isReadonly
     ? isShallow
       ? shallowReadonlyCollectionHandlers
