@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { autorun, configure, observable, trace } from 'mobx';
+import { autorun, configure, isObservable, observable, trace } from 'mobx';
 import {
   isReactive,
   reactive,
@@ -66,6 +66,7 @@ describe('reactivity/reactive', () => {
     console.warn = vi.fn();
 
     expect(isReactive(observed)).to.equal(false);
+    expect(isObservable(observed)).to.equal(false);
     expect(isReadonly(observed)).to.equal(true);
 
     observed.foo = 2;
@@ -81,7 +82,9 @@ describe('reactivity/reactive', () => {
     expect(isReactive(observed.nested)).to.equal(false);
     expect(isReadonly(observed.nested)).to.equal(true);
 
+    // should not modify
     observed.nested.foo = 2;
+    expect(observed.nested.foo).to.equal(1);
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
@@ -109,22 +112,39 @@ describe('reactivity/reactive', () => {
     expect(console.warn).toHaveBeenCalledTimes(2);
   });
 
-  it('should make wrapped reactive readonly', () => {
-    const observed = readonly(reactive({ foo: { bar: 1 } }));
+  it('should make wrapped/nested reactive readonly', () => {
+    const wrapped = readonly(reactive({ foo: { bar: 1 } }));
+    const nested = readonly({ foo: reactive({ bar: 1 }) });
     console.warn = vi.fn();
 
-    expect(isReactive(observed)).to.equal(false);
-    expect(isReadonly(observed)).to.equal(true);
+    const spy = vi.fn().mockImplementation(() => wrapped.foo.bar + nested.foo.bar);
+    autorun(spy);
 
-    expect(isReadonly(observed.foo)).to.equal(true);
-    observed.foo.bar = 2;
-    expect(console.warn).toHaveBeenCalledTimes(1);
-
-    const wrapped = readonly({ foo: reactive({ bar: 1 }) });
-
+    expect(isReadonly(wrapped)).to.equal(true);
     expect(isReadonly(wrapped.foo)).to.equal(true);
+    expect(isReadonly(nested)).to.equal(true);
+    expect(isReadonly(nested.foo)).to.equal(true);
+
+    // should not modify
     wrapped.foo.bar = 2;
+    expect(wrapped.foo.bar).to.equal(1);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // should not modify
+    expect(isReadonly(nested.foo)).to.equal(true);
+    nested.foo.bar = 2;
     expect(console.warn).toHaveBeenCalledTimes(2);
+  });
+
+  it('changes is wrapped reactive object should not be propagated', () => {
+    const wrapped = reactive({ foo: { bar: 1 } });
+    const observed = readonly(wrapped);
+    const spy = vi.fn().mockImplementation(() => observed.foo.bar);
+    autorun(spy);
+
+    wrapped.foo.bar = 2;
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 
   it('shallow readonly should unobserve nested data', () => {
@@ -211,10 +231,7 @@ describe('reactivity/reactive', () => {
 
   it('array methods', () => {
     const observed = reactive([1, 2, 3]);
-    let dummy;
-    let spy = vi.fn().mockImplementation(() => {
-      dummy = observed[0];
-    });
+    let spy = vi.fn().mockImplementation(() => observed[0]);
 
     autorun(spy);
     expect(spy).toHaveBeenCalledTimes(1);
@@ -224,7 +241,6 @@ describe('reactivity/reactive', () => {
 
     observed.splice(0, 1);
     expect(spy).toHaveBeenCalledTimes(3);
-    expect(dummy).to.equal(2);
 
     // sliced array should not be reactive
     const clone = observed.slice(0, 2);
@@ -233,7 +249,8 @@ describe('reactivity/reactive', () => {
 
   it('nested observable', () => {
     const observed = reactive({ foo: { bar: 1 } });
-    let nestedObserved = reactive(observed);
+    console.warn = vi.fn();
+    const nestedObserved = reactive(observed);
 
     // same object
     expect(nestedObserved).to.equal(observed);
@@ -393,9 +410,6 @@ describe('reactivity/reactive', () => {
   it('extreme test', () => {
     console.warn = vi.fn();
     const observed = readonly(readonly(readonly(reactive(reactive({ foo: { bar: 1 } })))));
-
-    expect(console.warn).toHaveBeenCalledTimes(3);
-
     const raw = toRaw(observed);
 
     // should not be reactive

@@ -85,16 +85,14 @@ export function isReadonly(target) {
 }
 
 function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean): T {
-  // avoid trying to observe a readonly object, and avoid observing reactive object twice
+  // avoid calling reactive/readonly() on a readonly object
+  // avoid calling reactive() on a reactive object
   if (isReadonly(target) || (isReactive(target) && !readonly)) {
-    warn(
-      `Attempt to observe a ${isReadonly(target) ? 'readonly object' : 'reactive object twice'}`
-    );
     return target;
   }
 
-  const observed =
-    isObservable(target) || readonly ? target : observable(target, {}, { deep: !shallow });
+  const shouldObserve = !(isObservable(target) || readonly);
+  const observed = shouldObserve ? observable(target, {}, { deep: !shallow }) : target;
 
   return createReactiveProxy(observed, shallow, readonly);
 }
