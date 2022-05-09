@@ -1,6 +1,5 @@
-import { hasOwn, isFunction } from '../shared';
+import { bind, hasOwn, warn } from '../shared';
 import { createReactiveProxy, ReactiveFlag } from './reactive';
-import { unRef } from './ref';
 
 // Adapted from: Vue.js (reactivity/src/collectionHandlers.ts)
 type IterableCollections = Map<any, any> | Set<any>;
@@ -18,7 +17,8 @@ export enum TriggerOpType {
 function createReadonlyMethod(type: TriggerOpType) {
   return function (this: CollectionTypes, ...args: unknown[]) {
     const key = args[0] ? `on key "${args[0]}"` : '';
-    console.warn(`Operation ${type} ${key}cannot be done on readonly target`);
+    warn(`Operation ${type} ${key}cannot be done on readonly collection type`);
+
     return type === TriggerOpType.DELETE ? false : this;
   };
 }
@@ -45,11 +45,7 @@ function createInstrumentationGetter(isShallow: boolean, isReadonly: boolean) {
     }
 
     const hasKey = hasOwn(instrumentations, key) && key in target;
-    let value = Reflect.get(hasKey ? instrumentations : target, key, receiver);
-
-    if (isFunction(value)) {
-      value = value.bind(target);
-    }
+    const value = bind(target, Reflect.get(hasKey ? instrumentations : target, key, receiver));
 
     return isShallow ? value : createReactiveProxy(value, isShallow, isReadonly);
   };

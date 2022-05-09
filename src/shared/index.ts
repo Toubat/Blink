@@ -24,3 +24,11 @@ export const toRawType = (value: unknown): string => {
 export const toTypeString = (value: unknown): string => {
   return Object.prototype.toString.call(value);
 };
+
+export const bind = <T extends object>(target: T, value) => {
+  return isFunction(value) ? value.bind(target) : value;
+};
+
+export const warn = (msg: string) => {
+  console.warn(msg);
+};

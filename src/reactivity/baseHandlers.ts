@@ -1,4 +1,4 @@
-import { isFunction } from '../shared';
+import { bind, isFunction, warn } from '../shared';
 import { createReactiveProxy, ReactiveFlag } from './reactive';
 import { unRef } from './ref';
 
@@ -10,25 +10,16 @@ function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean)
       return isReadonly;
     }
 
-    let value = unRef(Reflect.get(target, key, receiver));
+    const value = bind(target, unRef(Reflect.get(target, key, receiver)));
 
-    // bind target to function's thisArg
-    if (isFunction(value)) {
-      value = value.bind(target);
-    }
-
-    if (isShallow) {
-      return value;
-    }
-
-    return createReactiveProxy(value, isShallow, isReadonly);
+    return isShallow ? value : createReactiveProxy(value, isShallow, isReadonly);
   };
 }
 
 function createSetter<T extends object>(isShallow: boolean, isReadonly: boolean) {
   return function set(target: T, key: string | symbol, value: unknown, receiver: object) {
     if (isReadonly) {
-      console.warn(`Cannot set property ${String(key)} on readonly object`);
+      warn(`Cannot set key "${String(key)}" on readonly object`);
     }
     return Reflect.set(target, key, value, receiver);
   };
