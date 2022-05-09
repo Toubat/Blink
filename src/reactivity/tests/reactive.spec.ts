@@ -166,6 +166,18 @@ describe('reactivity/reactive', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
+  it('data inside readonly Map should be readonly', () => {
+    const observed = readonly(new Map([['foo', { bar: 1 }]]));
+
+    expect(isReadonly(observed.get('foo'))).to.equal(true);
+  });
+
+  it('data inside readonly Set should be readonly', () => {
+    const observed = readonly(new Set([{ foo: 1 }]));
+
+    expect(isReadonly(observed.values().next().value)).to.equal(true);
+  });
+
   it('readonly still allow call function that modify reactive value', () => {
     const data = reactive({ foo: 1 });
     const observed = readonly({
