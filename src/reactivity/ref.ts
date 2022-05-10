@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 import { hasChanged, isObject } from '../shared';
-import { reactive, ReactiveFlag, toRaw } from './reactive';
+import { reactive, ReactiveFlag, toRaw, UnwrapRef } from './reactive';
 
 export type Ref<T = any> = {
   value: T;
@@ -44,10 +44,16 @@ export function unRef(target) {
   return isRef(target) ? target.value : target;
 }
 
-export function ref<T>(value: T): Ref<T> {
-  return new RefImpl<T>(value, false);
+export function ref<T>(value: T): Ref<UnwrapRef<T>>;
+export function ref(value) {
+  if (isRef(value)) return value;
+
+  return new RefImpl(value, false);
 }
 
-export function shallowRef<T>(value: T): Ref<T> {
-  return new RefImpl<T>(value, true);
+export function shallowRef<T>(value: T): Ref<UnwrapRef<T>>;
+export function shallowRef(value) {
+  if (isRef(value)) return value;
+
+  return new RefImpl(value, true);
 }

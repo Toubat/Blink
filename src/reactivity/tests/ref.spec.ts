@@ -88,9 +88,14 @@ describe('reactivity/ref', () => {
 
   it('should unwrap ref value in ref array', () => {
     const observed = ref([1, 2, ref(0)]);
+    const spy = vi.fn().mockImplementation(() => observed.value[2]);
+    autorun(spy);
 
     expect(observed.value).to.deep.equal([1, 2, 0]);
     expect(observed.value[2]).to.equal(0);
+    observed.value[2] = 3;
+    expect(observed.value).to.deep.equal([1, 2, 3]);
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 
   it('should not trigger change on shallow ref', () => {
@@ -137,9 +142,9 @@ describe('reactivity/ref', () => {
       foo: ref(num),
     });
 
-    expect(observed.foo.value).toBe(1);
+    expect(observed.foo).toBe(1);
     num.value = 2;
-    expect(observed.foo.value).toBe(2);
+    expect(observed.foo).toBe(2);
   });
 
   it('ref(readonly()) retain readonly property', () => {
@@ -162,5 +167,19 @@ describe('reactivity/ref', () => {
     observed.value.foo = 2;
     expect(observed.value.foo).toBe(1);
     expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('type inference for ref', () => {
+    const a = reactive({
+      num: ref(ref(ref(1))),
+    });
+    expect(a.num).toBe(1);
+    a.num = 2;
+    expect(a.num).toBe(2);
+
+    const b = ref(ref(ref(ref({ foo: 1 }))));
+    expect(b.value).to.deep.equal({ foo: 1 });
+    b.value.foo = 2;
+    expect(b.value).to.deep.equal({ foo: 2 });
   });
 });
