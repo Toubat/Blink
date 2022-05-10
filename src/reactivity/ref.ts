@@ -1,8 +1,8 @@
-import { makeAutoObservable, makeObservable, observable } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 import { hasChanged, isObject } from '../shared';
-import { reactive, ReactiveFlag, toRaw, UnwrapRef } from './reactive';
+import { reactive, ReactiveFlag, toRaw } from './reactive';
 
-export type Ref<T> = {
+export type Ref<T = any> = {
   value: T;
   [ReactiveFlag.REF]: true;
 };
@@ -14,7 +14,7 @@ export class RefImpl<T> implements Ref<T> {
   public readonly __b_ref = true;
 
   constructor(value: T, public readonly __v_shallow: boolean) {
-    makeAutoObservable(this, {}, { deep: !__v_shallow });
+    makeAutoObservable(this, {}, { deep: false });
     this._rawValue = __v_shallow ? value : toRaw(value);
     this._value = __v_shallow ? value : toReactive(value);
   }

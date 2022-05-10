@@ -136,6 +136,16 @@ describe('reactivity/reactive', () => {
     expect(isReadonly(nested.foo)).to.equal(true);
     nested.foo.bar = 2;
     expect(console.warn).toHaveBeenCalledTimes(2);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('reactive(readonly()) should still be readonly', () => {
+    const observed = reactive(readonly({ foo: 1 }));
+    console.warn = vi.fn();
+
+    expect(isReadonly(observed)).to.equal(true);
+    observed.foo = 2;
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it('changes is readonly should not be propagated to original reactive object', () => {

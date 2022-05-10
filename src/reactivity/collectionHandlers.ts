@@ -1,11 +1,7 @@
 import { bind, hasOwn, warn } from '../shared';
-import { createReactiveProxy, ReactiveFlag, UnwrapRef } from './reactive';
+import { createReactiveProxy, ReactiveFlag } from './reactive';
 
-// Adapted from: Vue.js (reactivity/src/collectionHandlers.ts)
-type IterableCollections = Map<any, any> | Set<any>;
-type WeakCollections = WeakMap<any, any> | WeakSet<any>;
-
-export type CollectionTypes = IterableCollections | WeakCollections;
+export type CollectionTypes = Map<any, any> | Set<any> | WeakMap<any, any> | WeakSet<any>;
 
 export enum TriggerOpType {
   SET = 'set',
@@ -71,10 +67,7 @@ const shallowReadonlyCollectionHandlers = {
   get: createInstrumentationGetter(true, true),
 };
 
-export function getCollectionHandlers<T extends object>(
-  isShallow: boolean,
-  isReadonly: boolean
-): ProxyHandler<UnwrapRef<T>> {
+export function getCollectionHandlers(isShallow: boolean, isReadonly: boolean) {
   return isReadonly
     ? isShallow
       ? shallowReadonlyCollectionHandlers

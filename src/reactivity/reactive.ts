@@ -1,9 +1,8 @@
 import { isObservable, observable, toJS } from 'mobx';
-import { isObject, isPrimitive, toRawType, warn } from '../shared';
+import { isObject, isPrimitive, toRawType } from '../shared';
 import { getBaseHandler } from './baseHandlers';
 import { CollectionTypes, getCollectionHandlers } from './collectionHandlers';
-import { ComputedImpl } from './computed';
-import { isRef, Ref, RefImpl, unRef } from './ref';
+import { isRef, Ref, unRef } from './ref';
 
 export enum ReactiveFlag {
   REACTIVE = '__b_reactive',
@@ -19,8 +18,19 @@ export const enum TargetType {
   COLLECTION = 2,
 }
 
-export type UnwrapRef1<T> = T extends Ref<infer V> ? V : T;
-export type UnwrapRef<T> = T extends Ref<infer V> ? V : UnwrapRef1<T>;
+type BaseTypes = string | number | boolean;
+
+export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRefSimple<V> : UnwrapRefSimple<T>;
+export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>;
+export type UnwrapRefSimple<T> = T extends Function | CollectionTypes | BaseTypes | Ref
+  ? T
+  : T extends Array<any>
+  ? { [K in keyof T]: UnwrapRefSimple<T[K]> }
+  : T extends object
+  ? {
+      [P in keyof T]: P extends symbol ? T[P] : UnwrapRef<T[P]>;
+    }
+  : T;
 
 function targetTypeMap(rawType: string) {
   switch (rawType) {
@@ -37,19 +47,19 @@ function targetTypeMap(rawType: string) {
   }
 }
 
-export function reactive<T extends object>(target: T): UnwrapRef<T> {
+export function reactive<T extends object>(target: T): UnwrapNestedRefs<T> {
   return createReactiveObject(target, false, false);
 }
 
-export function shallowReactive<T extends object>(target: T): UnwrapRef<T> {
+export function shallowReactive<T extends object>(target: T): UnwrapNestedRefs<T> {
   return createReactiveObject(target, true, false);
 }
 
-export function readonly<T extends object>(target: T): UnwrapRef<T> {
+export function readonly<T extends object>(target: T): UnwrapNestedRefs<T> {
   return createReactiveObject(target, false, true);
 }
 
-export function shallowReadonly<T extends object>(target: T): UnwrapRef<T> {
+export function shallowReadonly<T extends object>(target: T): UnwrapNestedRefs<T> {
   return createReactiveObject(target, true, true);
 }
 
@@ -93,15 +103,11 @@ export function isShallow(target) {
   return isObject(target) && !!target[ReactiveFlag.SHALLOW];
 }
 
-function createReactiveObject<T extends object>(
-  target: T,
-  shallow: boolean,
-  readonly: boolean
-): UnwrapRef<T> {
+function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean) {
   // avoid calling reactive/readonly() on a readonly object
   // avoid calling reactive() on a reactive object
   if (isReadonly(target) || (isReactive(target) && !readonly)) {
-    return target as UnwrapRef<T>;
+    return target;
   }
 
   const shouldObserve = !(isObservable(target) || readonly);
@@ -110,21 +116,17 @@ function createReactiveObject<T extends object>(
   return createReactiveProxy(observed, shallow, readonly);
 }
 
-export function createReactiveProxy<T extends object>(
-  target: T,
-  shallow: boolean,
-  readonly: boolean
-): UnwrapRef<T>;
-
-export function createReactiveProxy<T extends object>(target, isShallow, isReadonly) {
+export function createReactiveProxy(target, isShallow: boolean, isReadonly: boolean) {
   // stop recurse if value is primitive data type
-  if (isPrimitive(target)) return target;
+  if (isPrimitive(target)) {
+    return target;
+  }
 
   const targetType = targetTypeMap(toRawType(target));
 
   // proxy handlers
-  const baseHandler = getBaseHandler<T>(isShallow, isReadonly);
-  const collectionHandler = getCollectionHandlers<T>(isShallow, isReadonly);
+  const baseHandler = getBaseHandler(isShallow, isReadonly);
+  const collectionHandler = getCollectionHandlers(isShallow, isReadonly);
 
   const handler = targetType === TargetType.COLLECTION ? collectionHandler : baseHandler;
 

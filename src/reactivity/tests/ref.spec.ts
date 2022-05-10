@@ -1,6 +1,6 @@
 import { autorun, configure, isObservable } from 'mobx';
 import { describe, expect, it, vi } from 'vitest';
-import { isReactive, reactive } from '../reactive';
+import { isReactive, isReadonly, reactive, readonly } from '../reactive';
 import { isRef, Ref, ref, shallowRef, unRef } from '../ref';
 
 configure({
@@ -12,6 +12,7 @@ describe('reactivity/ref', () => {
   it('happy path', () => {
     const observed = ref(1);
 
+    expect(isObservable(observed)).toBe(true);
     expect(observed.value).toBe(1);
     observed.value = 2;
     expect(observed.value).toBe(2);
@@ -69,8 +70,8 @@ describe('reactivity/ref', () => {
   });
 
   it('should unwrap ref value in reactive object', () => {
-    const observed = reactive<any>({
-      num: ref<number>(1),
+    const observed = reactive({
+      num: ref(1),
     });
 
     let dummy;
@@ -118,9 +119,48 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('reactive(ref())', () => {
+  it('reactive(ref()) should not unwrap ref', () => {
     const observed = reactive(ref(1));
+    const spy = vi.fn().mockImplementation(() => observed.value);
+    autorun(spy);
 
+    expect(spy).toHaveBeenCalledTimes(1);
     expect(isReactive(observed)).toBe(true);
+    expect(observed.value).toBe(1);
+    observed.value = 2;
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('reactive(ref())', () => {
+    const num = ref(1);
+    const observed = reactive({
+      foo: ref(num),
+    });
+
+    expect(observed.foo.value).toBe(1);
+    num.value = 2;
+    expect(observed.foo.value).toBe(2);
+  });
+
+  it('ref(readonly()) retain readonly property', () => {
+    const num = ref(readonly({ foo: 1 }));
+    console.warn = vi.fn();
+
+    expect(isReadonly(num)).toBe(false);
+    expect(isReadonly(num.value)).toBe(true);
+    num.value.foo = 2;
+    expect(num.value.foo).toBe(1);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('readonly(ref()) make wrapped ref readonly', () => {
+    const observed = readonly(ref({ foo: 1 }));
+    console.warn = vi.fn();
+
+    expect(isReadonly(observed)).toBe(true);
+    expect(isReadonly(observed.value)).toBe(true);
+    observed.value.foo = 2;
+    expect(observed.value.foo).toBe(1);
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 });

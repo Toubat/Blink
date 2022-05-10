@@ -1,5 +1,5 @@
 import { bind, isFunction, warn } from '../shared';
-import { createReactiveProxy, ReactiveFlag, UnwrapRef } from './reactive';
+import { createReactiveProxy, ReactiveFlag, UnwrapNestedRefs, UnwrapRef } from './reactive';
 import { isRef, unRef } from './ref';
 
 function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean) {
@@ -70,10 +70,7 @@ const shallowReadonlyHandler = {
   apply: createCaller(true, true),
 };
 
-export function getBaseHandler<T extends object>(
-  isShallow: boolean,
-  isReadonly: boolean
-): ProxyHandler<UnwrapRef<T>> {
+export function getBaseHandler(isShallow: boolean, isReadonly: boolean) {
   return isReadonly
     ? isShallow
       ? shallowReadonlyHandler
