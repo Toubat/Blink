@@ -1,7 +1,7 @@
-import { autorun, configure } from 'mobx';
+import { autorun, configure, isObservable } from 'mobx';
 import { describe, expect, it, vi } from 'vitest';
 import { isReactive, reactive } from '../reactive';
-import { isRef, ref, unRef } from '../ref';
+import { isRef, Ref, ref, shallowRef, unRef } from '../ref';
 
 configure({
   enforceActions: 'never',
@@ -68,8 +68,8 @@ describe('reactivity/ref', () => {
     expect(unRef(1)).toBe(1);
   });
 
-  it('should set ref value without calling value()', () => {
-    const observed = reactive({
+  it('should unwrap ref value in reactive object', () => {
+    const observed = reactive<any>({
       num: ref<number>(1),
     });
 
@@ -83,5 +83,44 @@ describe('reactivity/ref', () => {
     observed.num = 2;
     expect(dummy).toBe(2);
     expect(observed.num).to.equal(2);
+  });
+
+  it('should unwrap ref value in ref array', () => {
+    const observed = ref([1, 2, ref(0)]);
+
+    expect(observed.value).to.deep.equal([1, 2, 0]);
+    expect(observed.value[2]).to.equal(0);
+  });
+
+  it('should not trigger change on shallow ref', () => {
+    const observed = shallowRef({ foo: 1 });
+    const spy = vi.fn().mockImplementation(() => observed.value.foo);
+    autorun(spy);
+
+    // should not trigger effect
+    expect(spy).toHaveBeenCalledTimes(1);
+    observed.value.foo = 2;
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // should trigger effect
+    observed.value = { foo: 3 };
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('shallow ref should not unwrap ref value', () => {
+    const observed = shallowRef<any>([1, 2, ref(0)]);
+    const spy = vi.fn().mockImplementation(() => observed.value[2].value);
+    autorun(spy);
+
+    expect(isRef(observed.value[2])).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+    observed.value[2].value = 3;
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('reactive(ref())', () => {
+    const observed = reactive(ref(1));
+
+    expect(isReactive(observed)).toBe(true);
   });
 });

@@ -32,12 +32,12 @@ const readonlyInstrumentations: Record<string, Function> = {
   clear: createReadonlyMethod(TriggerOpType.CLEAR),
 };
 
-function createInstrumentationGetter(isShallow: boolean, isReadonly: boolean) {
+function createInstrumentationGetter<T extends object>(isShallow: boolean, isReadonly: boolean) {
   const instrumentations: Record<string, Function> = isReadonly
     ? readonlyInstrumentations
     : readtiveInstrumentations;
 
-  return function get(target: CollectionTypes, key: string | symbol, receiver: CollectionTypes) {
+  return function get(target: T, key: string | symbol, receiver: T) {
     if (key === ReactiveFlag.REACTIVE) {
       return !isReadonly;
     } else if (key === ReactiveFlag.READONLY) {
@@ -71,10 +71,10 @@ const shallowReadonlyCollectionHandlers = {
   get: createInstrumentationGetter(true, true),
 };
 
-export function getCollectionHandlers(
+export function getCollectionHandlers<T extends object>(
   isShallow: boolean,
   isReadonly: boolean
-): ProxyHandler<UnwrapRef<CollectionTypes>> {
+): ProxyHandler<UnwrapRef<T>> {
   return isReadonly
     ? isShallow
       ? shallowReadonlyCollectionHandlers

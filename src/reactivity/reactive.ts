@@ -1,7 +1,7 @@
 import { isObservable, observable, toJS } from 'mobx';
 import { isObject, isPrimitive, toRawType, warn } from '../shared';
 import { getBaseHandler } from './baseHandlers';
-import { getCollectionHandlers } from './collectionHandlers';
+import { CollectionTypes, getCollectionHandlers } from './collectionHandlers';
 import { ComputedImpl } from './computed';
 import { isRef, Ref, RefImpl, unRef } from './ref';
 
@@ -19,7 +19,8 @@ export const enum TargetType {
   COLLECTION = 2,
 }
 
-export type UnwrapRef<T> = T extends Ref<infer V> ? V : T;
+export type UnwrapRef1<T> = T extends Ref<infer V> ? V : T;
+export type UnwrapRef<T> = T extends Ref<infer V> ? V : UnwrapRef1<T>;
 
 function targetTypeMap(rawType: string) {
   switch (rawType) {
@@ -36,19 +37,19 @@ function targetTypeMap(rawType: string) {
   }
 }
 
-export function reactive<T extends object>(target: T): T {
+export function reactive<T extends object>(target: T): UnwrapRef<T> {
   return createReactiveObject(target, false, false);
 }
 
-export function shallowReactive<T extends object>(target: T): T {
+export function shallowReactive<T extends object>(target: T): UnwrapRef<T> {
   return createReactiveObject(target, true, false);
 }
 
-export function readonly<T extends object>(target: T): T {
+export function readonly<T extends object>(target: T): UnwrapRef<T> {
   return createReactiveObject(target, false, true);
 }
 
-export function shallowReadonly<T extends object>(target: T): T {
+export function shallowReadonly<T extends object>(target: T): UnwrapRef<T> {
   return createReactiveObject(target, true, true);
 }
 
@@ -92,11 +93,15 @@ export function isShallow(target) {
   return isObject(target) && !!target[ReactiveFlag.SHALLOW];
 }
 
-function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean): T {
+function createReactiveObject<T extends object>(
+  target: T,
+  shallow: boolean,
+  readonly: boolean
+): UnwrapRef<T> {
   // avoid calling reactive/readonly() on a readonly object
   // avoid calling reactive() on a reactive object
   if (isReadonly(target) || (isReactive(target) && !readonly)) {
-    return target;
+    return target as UnwrapRef<T>;
   }
 
   const shouldObserve = !(isObservable(target) || readonly);
@@ -107,19 +112,21 @@ function createReactiveObject<T extends object>(target: T, shallow: boolean, rea
 
 export function createReactiveProxy<T extends object>(
   target: T,
-  isShallow: boolean,
-  isReadonly: boolean
-): T {
+  shallow: boolean,
+  readonly: boolean
+): UnwrapRef<T>;
+
+export function createReactiveProxy<T extends object>(target, isShallow, isReadonly) {
   // stop recurse if value is primitive data type
   if (isPrimitive(target)) return target;
 
   const targetType = targetTypeMap(toRawType(target));
 
   // proxy handlers
-  const baseHandler = getBaseHandler(isShallow, isReadonly);
-  const collectionHandler = getCollectionHandlers(isShallow, isReadonly);
+  const baseHandler = getBaseHandler<T>(isShallow, isReadonly);
+  const collectionHandler = getCollectionHandlers<T>(isShallow, isReadonly);
 
   const handler = targetType === TargetType.COLLECTION ? collectionHandler : baseHandler;
 
-  return new Proxy(target, handler as ProxyHandler<T>);
+  return new Proxy(target, handler);
 }

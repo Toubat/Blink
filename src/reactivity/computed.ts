@@ -11,7 +11,7 @@ export interface ComputedOptions<T> {
   set: ComputedSetter<T>;
 }
 
-export class ComputedImpl<T> {
+export class ComputedImpl<T> implements Ref<T> {
   private _getter: ComputedGetter<T>;
   private _setter: ComputedSetter<T>;
   private _runner;
