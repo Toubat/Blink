@@ -1,7 +1,8 @@
-import { autorun, configure, isObservable } from 'mobx';
+import { configure, isObservable } from 'mobx';
 import { describe, expect, it, vi } from 'vitest';
 import { isReactive, isReadonly, reactive, readonly } from '../reactive';
 import { isRef, Ref, ref, shallowRef, unRef } from '../ref';
+import { effect } from '../effect';
 
 configure({
   enforceActions: 'never',
@@ -21,7 +22,7 @@ describe('reactivity/ref', () => {
   it('should trigger effect', () => {
     const observed = ref(1);
     const spy = vi.fn().mockImplementation(() => observed.value);
-    autorun(spy);
+    effect(spy);
 
     expect(spy).toHaveBeenCalledTimes(1);
     observed.value = 2;
@@ -31,7 +32,7 @@ describe('reactivity/ref', () => {
   it('should not trigger effect when value is not changed', () => {
     const observed = ref(1);
     const spy = vi.fn().mockImplementation(() => observed.value);
-    autorun(spy);
+    effect(spy);
 
     observed.value = 1;
     expect(spy).toHaveBeenCalledTimes(1);
@@ -43,7 +44,7 @@ describe('reactivity/ref', () => {
     });
 
     let dummy;
-    autorun(() => {
+    effect(() => {
       dummy = a.value.count;
     });
 
@@ -75,7 +76,7 @@ describe('reactivity/ref', () => {
     });
 
     let dummy;
-    autorun(() => {
+    effect(() => {
       dummy = observed.num;
     });
 
@@ -89,7 +90,7 @@ describe('reactivity/ref', () => {
   it('should unwrap ref value in ref array', () => {
     const observed = ref([1, 2, ref(0)]);
     const spy = vi.fn().mockImplementation(() => observed.value[2]);
-    autorun(spy);
+    effect(spy);
 
     expect(observed.value).to.deep.equal([1, 2, 0]);
     expect(observed.value[2]).to.equal(0);
@@ -101,7 +102,7 @@ describe('reactivity/ref', () => {
   it('should not trigger change on shallow ref', () => {
     const observed = shallowRef({ foo: 1 });
     const spy = vi.fn().mockImplementation(() => observed.value.foo);
-    autorun(spy);
+    effect(spy);
 
     // should not trigger effect
     expect(spy).toHaveBeenCalledTimes(1);
@@ -116,7 +117,7 @@ describe('reactivity/ref', () => {
   it('shallow ref should not unwrap ref value', () => {
     const observed = shallowRef<any>([1, 2, ref(0)]);
     const spy = vi.fn().mockImplementation(() => observed.value[2].value);
-    autorun(spy);
+    effect(spy);
 
     expect(isRef(observed.value[2])).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
@@ -127,7 +128,7 @@ describe('reactivity/ref', () => {
   it('reactive(ref()) should not unwrap ref', () => {
     const observed = reactive(ref(1));
     const spy = vi.fn().mockImplementation(() => observed.value);
-    autorun(spy);
+    effect(spy);
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(isReactive(observed)).toBe(true);

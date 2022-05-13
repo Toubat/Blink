@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { autorun, configure, isObservable, observable, trace } from 'mobx';
+import { configure, isObservable, observable, trace } from 'mobx';
 import {
   isReactive,
   reactive,
@@ -11,6 +11,7 @@ import {
   isShallow,
 } from '../reactive';
 import { computed } from '../computed';
+import { effect } from '../effect';
 
 configure({
   enforceActions: 'never',
@@ -32,7 +33,7 @@ describe('reactivity/reactive', () => {
     observed.bar = 3;
     expect(observed.bar).to.equal(3);
 
-    autorun(() => {
+    effect(() => {
       dummy = observed.bar;
     });
     expect(dummy).to.equal(3);
@@ -52,7 +53,7 @@ describe('reactivity/reactive', () => {
     expect(isReactive(observed)).to.equal(true);
     expect(isReactive(observed.nested)).to.equal(false);
 
-    autorun(spy);
+    effect(spy);
     expect(dummy).to.equal(1);
     expect(spy).toHaveBeenCalledTimes(1);
 
@@ -119,7 +120,7 @@ describe('reactivity/reactive', () => {
     console.warn = vi.fn();
 
     const spy = vi.fn().mockImplementation(() => wrapped.foo.bar + nested.foo.bar);
-    autorun(spy);
+    effect(spy);
 
     expect(isReadonly(wrapped)).to.equal(true);
     expect(isReadonly(wrapped.foo)).to.equal(true);
@@ -153,7 +154,7 @@ describe('reactivity/reactive', () => {
     const observed = readonly(wrapped);
     const spy = vi.fn().mockImplementation(() => wrapped.foo.bar);
     console.warn = vi.fn();
-    autorun(spy);
+    effect(spy);
 
     observed.foo.bar = 2;
     expect(spy).toHaveBeenCalledTimes(1);
@@ -182,7 +183,7 @@ describe('reactivity/reactive', () => {
     const spy = vi.fn().mockImplementation(() => {
       dummy = observed.get('foo');
     });
-    autorun(spy);
+    effect(spy);
 
     expect(isReadonly(observed)).to.equal(true);
     observed.set('foo', 2);
@@ -220,7 +221,7 @@ describe('reactivity/reactive', () => {
     });
     let dummy;
 
-    autorun(() => {
+    effect(() => {
       dummy = data.foo;
     });
 
@@ -233,7 +234,7 @@ describe('reactivity/reactive', () => {
     const observed = reactive([1, 2, 3]);
     let dummy;
 
-    autorun(() => {
+    effect(() => {
       dummy = observed[0];
     });
 
@@ -246,7 +247,7 @@ describe('reactivity/reactive', () => {
     const observed = reactive([1, 2, 3]);
     let spy = vi.fn().mockImplementation(() => observed[0]);
 
-    autorun(spy);
+    effect(spy);
     expect(spy).toHaveBeenCalledTimes(1);
 
     observed.push(4);
@@ -258,6 +259,18 @@ describe('reactivity/reactive', () => {
     // sliced array should not be reactive
     const clone = observed.slice(0, 2);
     expect(isReactive(clone)).to.equal(false);
+  });
+
+  it('array slice', () => {
+    const observed = reactive({
+      arr: [1, 2, 3],
+    });
+    const spy = vi.fn().mockImplementation(() => observed.arr.slice(0, 2));
+    effect(spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    observed.arr = [4, 5, 6];
+    expect(spy).toHaveBeenCalledTimes(2);
   });
 
   it('nested observable', () => {
@@ -274,7 +287,7 @@ describe('reactivity/reactive', () => {
     observed.set('foo', { bar: 1 });
     let dummy;
 
-    autorun(() => {
+    effect(() => {
       dummy = observed.get('foo');
     });
 
@@ -300,7 +313,7 @@ describe('reactivity/reactive', () => {
         dummy = value;
       });
     });
-    autorun(spy);
+    effect(spy);
 
     expect(spy).toHaveBeenCalledTimes(1);
     observed.set('foo', 2);
@@ -315,7 +328,7 @@ describe('reactivity/reactive', () => {
         dummy = value;
       });
     });
-    autorun(spy);
+    effect(spy);
 
     expect(spy).toHaveBeenCalledTimes(1);
     observed.add(4);
@@ -327,7 +340,7 @@ describe('reactivity/reactive', () => {
     observed.add(1);
     let dummy;
 
-    autorun(() => {
+    effect(() => {
       dummy = observed.has(1);
     });
 

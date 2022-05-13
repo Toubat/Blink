@@ -1,7 +1,8 @@
-import { autorun, configure } from 'mobx';
+import { configure } from 'mobx';
 import { describe, it, expect, vi } from 'vitest';
 import { computed } from '../computed';
 import { reactive, ReactiveFlag } from '../reactive';
+import { effect } from '../effect';
 
 configure({
   enforceActions: 'never',
@@ -30,7 +31,7 @@ describe('reactivity/computed', () => {
     const data = computed<string>(() => observed.foo + ' ' + observed.bar);
     let dummy;
 
-    autorun(() => {
+    effect(() => {
       dummy = data.value;
     });
 
@@ -99,7 +100,7 @@ describe('reactivity/computed', () => {
     observed.foo = 2;
     expect(nested.data).to.equal(3);
 
-    autorun(() => {
+    effect(() => {
       dummy = nested.data;
     });
 

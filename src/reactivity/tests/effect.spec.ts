@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { autorun, configure } from 'mobx';
+import { configure } from 'mobx';
 import { reactive } from '../reactive';
+import { effect } from '../effect';
 
 configure({
   enforceActions: 'never',
@@ -17,9 +18,9 @@ describe('reactivity/effect', () => {
       dummy = observed.foo;
     });
     const parentSpy = vi.fn().mockImplementation(() => {
-      autorun(childSpy);
+      effect(childSpy);
     });
-    autorun(parentSpy);
+    effect(parentSpy);
 
     // should call both child effect and parent effect
     expect(childSpy).toHaveBeenCalledTimes(1);
