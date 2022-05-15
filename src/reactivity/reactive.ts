@@ -106,6 +106,7 @@ export function isShallow(target) {
 function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean) {
   // avoid calling reactive/readonly() on a readonly object
   // avoid calling reactive() on a reactive object
+
   if (isReadonly(target) || (isReactive(target) && !readonly)) {
     return target;
   }

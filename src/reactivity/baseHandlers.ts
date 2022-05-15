@@ -1,3 +1,4 @@
+import { runInAction } from 'mobx';
 import { bind, isFunction, warn } from '../shared';
 import { createReactiveProxy, ReactiveFlag, UnwrapNestedRefs, UnwrapRef } from './reactive';
 import { isRef, unRef } from './ref';
@@ -27,13 +28,17 @@ function createSetter<T extends object>(isShallow: boolean, isReadonly: boolean)
       return true;
     }
 
-    const res = Reflect.get(target, key);
+    let res;
+    runInAction(() => {
+      res = Reflect.get(target, key);
+    });
 
     if (isRef(res) && !isRef(value)) {
       res.value = value;
       return true;
     }
 
+    if (res === value) return true;
     return Reflect.set(target, key, value, receiver);
   };
 }
