@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
-import { configure } from 'mobx';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { action, autorun, configure, Reaction, reaction } from 'mobx';
 import { reactive } from '../reactive';
-import { effect } from '../effect';
+import { effect, stop } from '../effect';
 
 configure({
   enforceActions: 'never',
@@ -9,6 +9,14 @@ configure({
 });
 
 describe('reactivity/effect', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('nested effect should only be called once', () => {
     const data = { foo: 1 };
     const observed = reactive(data);
@@ -31,6 +39,42 @@ describe('reactivity/effect', () => {
     observed.foo = 2;
     expect(childSpy).toHaveBeenCalledTimes(2);
     expect(parentSpy).toHaveBeenCalledTimes(1);
+    expect(dummy).to.equal(2);
+  });
+
+  it('custome scheduler', () => {
+    const observed = reactive({ foo: 1 });
+    let dummy;
+    const spy = vi.fn().mockImplementation(() => (dummy = observed.foo));
+
+    effect(spy, {
+      scheduler: (run) => {
+        run();
+        run();
+      },
+    });
+
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(dummy).to.equal(1);
+    observed.foo = 2;
+    expect(spy).toHaveBeenCalledTimes(4);
+  });
+
+  it('should stop effect', () => {
+    const observed = reactive({ foo: 1 });
+    let dummy;
+    const spy = vi.fn().mockImplementation(() => (dummy = observed.foo));
+
+    const runner = effect(spy);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(dummy).to.equal(1);
+    observed.foo = 2;
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(dummy).to.equal(2);
+
+    stop(runner);
+    observed.foo = 3;
+    expect(spy).toHaveBeenCalledTimes(2);
     expect(dummy).to.equal(2);
   });
 });
