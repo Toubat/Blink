@@ -1,5 +1,5 @@
-import { autorun, reaction } from 'mobx';
-import { extend } from '../shared';
+import { autorun, reaction, runInAction } from 'mobx';
+import { extend, isFunction } from '../shared';
 
 export type EffectScheduler = (runner: Function) => any;
 
@@ -36,6 +36,10 @@ export class ReactiveEffect<T = any> {
 export function effect<T>(fn: () => T, options: EffectOptions = {}) {
   const { scheduler, onStop } = options;
 
+  if ((fn as EffectRunner)._effect) {
+    fn = (fn as EffectRunner)._effect.fn;
+  }
+
   const effect = new ReactiveEffect(fn, scheduler || DEFAULT_SCHEDULER);
   extend(effect, { onStop });
 
@@ -43,6 +47,10 @@ export function effect<T>(fn: () => T, options: EffectOptions = {}) {
   runner._effect = effect;
 
   return runner;
+}
+
+export function untrack<T>(fn: () => T) {
+  return runInAction(fn);
 }
 
 export function stop(runner: EffectRunner) {
