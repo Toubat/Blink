@@ -307,7 +307,7 @@ describe('reactivity/reactive', () => {
         ['bar', 2],
       ])
     );
-    let dummy;
+    let dummy = 0;
     let spy = vi.fn().mockImplementation(() => {
       observed.forEach((value) => {
         dummy = value;
@@ -338,7 +338,7 @@ describe('reactivity/reactive', () => {
   it('reactive Set', () => {
     const observed = reactive(new Set<number>());
     observed.add(1);
-    let dummy;
+    let dummy = false;
 
     effect(() => {
       dummy = observed.has(1);
