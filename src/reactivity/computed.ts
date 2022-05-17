@@ -2,6 +2,7 @@ import { NOOP, isObject } from '../shared';
 import { computed as _computed } from 'mobx';
 import { ReactiveFlag } from './reactive';
 import { Ref } from './ref';
+import { untrack } from './effect';
 
 type ComputedGetter<T> = () => T;
 type ComputedSetter<T> = (value: T) => void;
@@ -31,8 +32,10 @@ export class ComputedImpl<T> implements Ref<T> {
   }
 
   set value(newValue: T) {
-    if (newValue === this._value) return;
-    this._setter(newValue);
+    untrack(() => {
+      if (newValue === this._value) return;
+      this._setter(newValue);
+    });
   }
 }
 

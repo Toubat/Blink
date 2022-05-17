@@ -1,7 +1,6 @@
-import { runInAction } from 'mobx';
-import { bind, isFunction, warn } from '../shared';
+import { bind, warn } from '../shared';
 import { untrack } from './effect';
-import { createReactiveProxy, ReactiveFlag, UnwrapNestedRefs, UnwrapRef } from './reactive';
+import { createReactiveProxy, ReactiveFlag } from './reactive';
 import { isRef, unRef } from './ref';
 
 function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean) {

@@ -1,6 +1,6 @@
 import { configure, isObservable } from 'mobx';
 import { describe, expect, it, vi } from 'vitest';
-import { isReactive, isReadonly, reactive, readonly } from '../reactive';
+import { isReactive, isReadonly, isShallow, reactive, readonly } from '../reactive';
 import { isRef, Ref, ref, shallowRef, unRef } from '../ref';
 import { effect } from '../effect';
 
@@ -104,6 +104,7 @@ describe('reactivity/ref', () => {
     const spy = vi.fn().mockImplementation(() => observed.value.foo);
     effect(spy);
 
+    isShallow(observed);
     // should not trigger effect
     expect(spy).toHaveBeenCalledTimes(1);
     observed.value.foo = 2;

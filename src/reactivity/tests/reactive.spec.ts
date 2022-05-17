@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { configure, isObservable, observable, trace } from 'mobx';
+import { configure, isObservable, observable, reaction, trace } from 'mobx';
 import {
   isReactive,
   reactive,

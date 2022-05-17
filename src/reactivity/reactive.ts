@@ -2,7 +2,7 @@ import { isObservable, observable, toJS } from 'mobx';
 import { isObject, isPrimitive, toRawType } from '../shared';
 import { getBaseHandler } from './baseHandlers';
 import { CollectionTypes, getCollectionHandlers } from './collectionHandlers';
-import { isRef, Ref, unRef } from './ref';
+import { isRef, Ref, unRef, UnwrapNestedRefs } from './ref';
 
 export enum ReactiveFlag {
   REACTIVE = '__b_reactive',
@@ -17,20 +17,6 @@ export const enum TargetType {
   COMMON = 1,
   COLLECTION = 2,
 }
-
-type BaseTypes = string | number | boolean;
-
-export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRefSimple<V> : UnwrapRefSimple<T>;
-export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>;
-export type UnwrapRefSimple<T> = T extends Function | CollectionTypes | BaseTypes | Ref
-  ? T
-  : T extends Array<any>
-  ? { [K in keyof T]: UnwrapRefSimple<T[K]> }
-  : T extends object
-  ? {
-      [P in keyof T]: P extends symbol ? T[P] : UnwrapRef<T[P]>;
-    }
-  : T;
 
 function targetTypeMap(rawType: string) {
   switch (rawType) {

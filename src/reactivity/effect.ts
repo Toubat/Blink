@@ -1,4 +1,4 @@
-import { autorun, reaction, runInAction } from 'mobx';
+import { autorun, reaction, runInAction, transaction, untracked } from 'mobx';
 import { extend, isFunction } from '../shared';
 
 export type EffectScheduler = (runner: Function) => any;
@@ -27,9 +27,7 @@ export class ReactiveEffect<T = any> {
 
   stop() {
     this.stopFn();
-    if (this.onStop) {
-      this.onStop();
-    }
+    this.onStop && this.onStop();
   }
 }
 
@@ -50,7 +48,7 @@ export function effect<T>(fn: () => T, options: EffectOptions = {}) {
 }
 
 export function untrack<T>(fn: () => T) {
-  return runInAction(fn);
+  return untracked(fn);
 }
 
 export function stop(runner: EffectRunner) {

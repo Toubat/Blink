@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { autorun, configure, observable } from 'mobx';
-import { reactive } from '../reactive';
-import { effect, stop } from '../effect';
+import { autorun, configure, observable, reaction } from 'mobx';
+import { reactive, readonly } from '../reactive';
+import { effect, stop, untrack } from '../effect';
 import { computed } from '../computed';
+import { ref } from '../ref';
 
 configure({
   enforceActions: 'never',
@@ -156,20 +157,17 @@ describe('reactivity/effect', () => {
     expect(dummy).toBe(6);
   });
 
-  // it('should untrack set action in effect', () => {
-  //   const observed = observable({ foo: 1 });
+  it('should untrack set action in effect', () => {
+    const observed = observable({ foo: 1 });
 
-  //   const spy = vi.fn().mockImplementation(() => {
-  //     observed.foo++;
-  //   });
-  //   autorun(spy);
+    const spy = vi.fn().mockImplementation(() => {
+      observed.foo++;
+    });
+    autorun(spy);
 
-  //   expect(spy).toHaveBeenCalledTimes(1);
-  //   expect(observed.foo).to.equal(2);
-  //   observed.foo = 3;
-  //   expect(spy).toHaveBeenCalledTimes(2);
-  //   expect(observed.foo).to.equal(4);
-  // });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(observed.foo).to.equal(2);
+  });
 
   it('should avoid infinite loops with other effects', () => {
     const nums = reactive({ num1: 0, num2: 1 });
@@ -205,5 +203,185 @@ describe('reactivity/effect', () => {
 
     obj.a = 1;
     expect(dummy.a).toBe(1);
+  });
+
+  it('should not be triggered by mutating a property, which is used in an inactive branch', () => {
+    let dummy;
+    const obj = reactive({ prop: 'value', run: true });
+
+    const conditionalSpy = vi.fn().mockImplementation(() => {
+      dummy = obj.run ? obj.prop : 'other';
+    });
+    effect(conditionalSpy);
+
+    expect(dummy).toBe('value');
+    expect(conditionalSpy).toHaveBeenCalledTimes(1);
+    obj.run = false;
+    expect(dummy).toBe('other');
+    expect(conditionalSpy).toHaveBeenCalledTimes(2);
+    obj.prop = 'value2';
+    expect(dummy).toBe('other');
+    expect(conditionalSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('reactive in effect', () => {
+    let observed;
+    let dummy;
+
+    const inner = vi.fn().mockImplementation(() => {
+      if (!observed) {
+        const obj = reactive({ bar: ref(1) });
+        obj.bar++;
+        observed = obj;
+      }
+      dummy = observed.bar;
+    });
+
+    const spy = vi.fn().mockImplementation(() => {
+      const obj = reactive({ foo: 1 });
+      obj.foo++;
+      effect(inner);
+    });
+
+    effect(spy);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(observed.bar).toBe(2);
+
+    observed.bar++;
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(inner).toHaveBeenCalledTimes(2);
+    expect(dummy).toBe(3);
+  });
+
+  it('comprehensive test', () => {
+    let dummy: any = {};
+    let outer_b;
+
+    const a = reactive({ foo: 1 });
+    const outer = vi.fn().mockImplementation(() => {
+      let b: { bar: number };
+      untrack(() => {
+        b = reactive({ bar: 2 });
+        b.bar++;
+        outer_b = b;
+      });
+
+      effect(() => {
+        middle(readonly(b));
+      });
+    });
+    const middle = vi.fn().mockImplementation((b) => {
+      const c = reactive({ baz: 3 });
+      b.bar;
+
+      effect(() => {
+        inner(b, c);
+      });
+    });
+
+    const inner = vi.fn((b, c) => {
+      dummy = {
+        foo: a.foo,
+        bar: b.bar,
+        baz: c.baz,
+      };
+    });
+
+    effect(outer);
+    expect(outer).toHaveBeenCalledTimes(1);
+    expect(middle).toHaveBeenCalledTimes(1);
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(dummy).toEqual({ foo: 1, bar: 3, baz: 3 });
+
+    // should not invoke outer and middle effect
+    a.foo = 2;
+    expect(outer).toHaveBeenCalledTimes(1);
+    expect(middle).toHaveBeenCalledTimes(1);
+    expect(inner).toHaveBeenCalledTimes(2);
+    expect(dummy).toEqual({ foo: 2, bar: 3, baz: 3 });
+
+    // should not invoke outer effect
+    outer_b.bar = 4;
+    expect(outer).toHaveBeenCalledTimes(1);
+    expect(middle).toHaveBeenCalledTimes(2);
+    expect(inner).toHaveBeenCalledTimes(4);
+  });
+
+  it('reaction', () => {
+    let dummy: any = {};
+    let outer_b;
+    let inner_c;
+    const a = reactive({ foo: 1 });
+
+    const outer = vi.fn().mockImplementation(() => {
+      let b: { bar: number };
+      untrack(() => {
+        b = reactive({ bar: 2 });
+        b.bar++;
+        outer_b = b;
+      });
+
+      reaction(
+        () => b.bar,
+        (b) => {
+          middle(b);
+        },
+        {
+          fireImmediately: true,
+        }
+      );
+    });
+
+    const middle = vi.fn().mockImplementation((b) => {
+      const c = reactive({ baz: 3 });
+      b.bar;
+      inner_c = c;
+
+      reaction(
+        () => c.baz,
+        (c) => {
+          inner(b, c);
+        },
+        {
+          fireImmediately: true,
+        }
+      );
+    });
+
+    const inner = vi.fn((b, c) => {
+      dummy = {
+        foo: a.foo,
+        bar: b,
+        baz: c,
+      };
+    });
+
+    reaction(() => a.foo, outer, {
+      fireImmediately: true,
+    });
+    expect(outer).toHaveBeenCalledTimes(1);
+    expect(middle).toHaveBeenCalledTimes(1);
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(dummy).toEqual({ foo: 1, bar: 3, baz: 3 });
+
+    // should invoke all
+    a.foo = 2;
+    expect(outer).toHaveBeenCalledTimes(2);
+    expect(middle).toHaveBeenCalledTimes(2);
+    expect(inner).toHaveBeenCalledTimes(2);
+    expect(dummy).toEqual({ foo: 2, bar: 3, baz: 3 });
+
+    // should not invoke outer effect
+    outer_b.bar = 4;
+    expect(outer).toHaveBeenCalledTimes(2);
+    expect(middle).toHaveBeenCalledTimes(3);
+    expect(inner).toHaveBeenCalledTimes(3);
+
+    // should not invoke outer and middle effect
+    inner_c.baz = 4;
+    expect(outer).toHaveBeenCalledTimes(2);
+    expect(middle).toHaveBeenCalledTimes(3);
+    expect(inner).toHaveBeenCalledTimes(4);
   });
 });

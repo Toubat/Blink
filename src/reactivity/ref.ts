@@ -1,11 +1,27 @@
 import { makeAutoObservable } from 'mobx';
 import { hasChanged, isObject } from '../shared';
-import { reactive, ReactiveFlag, toRaw, UnwrapRef } from './reactive';
+import { CollectionTypes } from './collectionHandlers';
+import { untrack } from './effect';
+import { reactive, ReactiveFlag, toRaw } from './reactive';
 
 export type Ref<T = any> = {
   value: T;
   [ReactiveFlag.REF]: true;
 };
+
+type BaseTypes = string | number | boolean;
+
+export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRefSimple<V> : UnwrapRefSimple<T>;
+export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>;
+export type UnwrapRefSimple<T> = T extends Function | CollectionTypes | BaseTypes | Ref
+  ? T
+  : T extends Array<any>
+  ? { [K in keyof T]: UnwrapRefSimple<T[K]> }
+  : T extends object
+  ? {
+      [P in keyof T]: P extends symbol ? T[P] : UnwrapRef<T[P]>;
+    }
+  : T;
 
 export class RefImpl<T> implements Ref<T> {
   private _value: T;
@@ -13,10 +29,10 @@ export class RefImpl<T> implements Ref<T> {
   // reactive flags
   public readonly __b_ref = true;
 
-  constructor(value: T, public readonly __v_shallow: boolean) {
+  constructor(value: T, public readonly __b_shallow: boolean) {
     makeAutoObservable(this, {}, { deep: false });
-    this._rawValue = __v_shallow ? value : toRaw(value);
-    this._value = __v_shallow ? value : toReactive(value);
+    this._rawValue = __b_shallow ? value : toRaw(value);
+    this._value = __b_shallow ? value : toReactive(value);
   }
 
   get value() {
@@ -24,11 +40,13 @@ export class RefImpl<T> implements Ref<T> {
   }
 
   set value(newValue) {
-    newValue = this.__v_shallow ? newValue : toRaw(newValue);
-    if (hasChanged(newValue, this._rawValue)) {
-      this._rawValue = newValue;
-      this._value = this.__v_shallow ? newValue : toReactive(newValue);
-    }
+    untrack(() => {
+      newValue = this.__b_shallow ? newValue : toRaw(newValue);
+      if (hasChanged(newValue, this._rawValue)) {
+        this._rawValue = newValue;
+        this._value = this.__b_shallow ? newValue : toReactive(newValue);
+      }
+    });
   }
 }
 
