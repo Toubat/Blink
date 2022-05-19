@@ -1,13 +1,27 @@
 import { Null } from "../shared/types";
+import { BlockComponent, InlineComponent } from "./component";
 
-const NODE_CREATOR = Symbol("NODE_CREATOR");
+const NODE_CREATOR = Symbol("node_creator");
 
-export type VNodeType = string | Function;
+// VNode flags
+export const Text = Symbol("text");
+export const Fragment = Symbol("fragment");
+export const Inline = Symbol("inline");
+
+export type VNodeType =
+  | string
+  | BlockComponent
+  | typeof Text
+  | typeof Fragment
+  | typeof Inline;
+
 export type VNodeProps = object;
-export type VNodeChildren = (VNodeCreator | string)[];
+
+export type VNodeChild = string | VNodeCreator | InlineComponent;
+export type VNodeChildren = VNodeChild[];
 
 export interface VNodeCreator {
-  init: () => VNode;
+  (): VNode;
   [NODE_CREATOR]: boolean;
 }
 
@@ -22,10 +36,9 @@ export function createVNodeCreator(
   props: VNodeProps | Null,
   ...children: VNodeChildren
 ): VNodeCreator {
-  const creator = {
-    init: () => createVNode(type, props, ...children),
-    [NODE_CREATOR]: true,
-  };
+  const createVNodeFn = () => createVNode(type, props, ...children);
+  const creator = createVNodeFn as VNodeCreator;
+  creator[NODE_CREATOR] = true;
 
   return creator;
 }

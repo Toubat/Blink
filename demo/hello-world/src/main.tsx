@@ -1,31 +1,43 @@
-import { createView, ref } from "../../../dist";
+import { createView, effect, ref } from "../../../dist";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
-const JSX = (
-  <div>
-    <p style="color: green">ASDASDASDASDAD</p>
-    nested
-  </div>
-);
+const a = ref(111);
 
-const App = ({ a }) => {
-  const data = ref(a);
-
+const App = ({ a: data }) => {
   return (
     <div>
       <p style="color: red">ASDASDASDASDAD</p>
       Hello {data.value}
       <ul>
-        <li>1</li>
-        <li>2</li>
-        <li>3</li>
+        <li>{data}</li>
+        {() => (data.value === 133 ? <li>133</li> : "Not 133")}
       </ul>
-      {JSX}
     </div>
   );
 };
 
-const view = createView(<App a={133} />);
+const JSX = (
+  <div>
+    <p style="color: green">ASDASDASDASDAD</p>
+    nested
+    <App a={a} />
+  </div>
+);
 
-view.render(app);
+effect(() => {
+  const view = createView(JSX);
+
+  view.render(app);
+});
+
+setTimeout(() => {
+  a.value = 133;
+}, 1000);
+
+const b = () => {
+  console.log("b");
+};
+const symbol = Symbol("asd");
+b[symbol] = 0;
+console.log(b());

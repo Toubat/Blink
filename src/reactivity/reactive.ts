@@ -1,15 +1,15 @@
-import { isObservable, observable, toJS } from 'mobx';
-import { isObject, isPrimitive, toRawType } from '../shared';
-import { getBaseHandler } from './baseHandlers';
-import { CollectionTypes, getCollectionHandlers } from './collectionHandlers';
-import { isRef, Ref, unRef, UnwrapNestedRefs } from './ref';
+import { isObservable, observable, toJS } from "mobx";
+import { isObject, isPrimitive, toRawType } from "../shared";
+import { getBaseHandler } from "./baseHandlers";
+import { CollectionTypes, getCollectionHandlers } from "./collectionHandlers";
+import { isRef, Ref, unRef, UnwrapNestedRefs } from "./ref";
 
 export enum ReactiveFlag {
-  REACTIVE = '__b_reactive',
-  READONLY = '__b_readonly',
-  SHALLOW = '__b_shallow',
-  REF = '__b_ref',
-  RAW = '__b_raw',
+  REACTIVE = "__b_reactive",
+  READONLY = "__b_readonly",
+  SHALLOW = "__b_shallow",
+  REF = "__b_ref",
+  RAW = "__b_raw",
 }
 
 export const enum TargetType {
@@ -20,13 +20,13 @@ export const enum TargetType {
 
 function targetTypeMap(rawType: string) {
   switch (rawType) {
-    case 'Object':
-    case 'Array':
+    case "Object":
+    case "Array":
       return TargetType.COMMON;
-    case 'Map':
-    case 'Set':
-    case 'WeakMap':
-    case 'WeakSet':
+    case "Map":
+    case "Set":
+    case "WeakMap":
+    case "WeakSet":
       return TargetType.COLLECTION;
     default:
       return TargetType.INVALID;
@@ -52,14 +52,11 @@ export function shallowReadonly<T extends object>(target: T): UnwrapNestedRefs<T
 export function toRaw<T>(target: T, shallow: boolean = false): T {
   let rawTarget = target;
 
-  // handle chain of readonly
-  while (isReadonly(rawTarget)) {
-    rawTarget = rawTarget[ReactiveFlag.RAW];
-  }
-
-  // handle chain of ref
-  while (isRef(rawTarget)) {
+  // handle chain of readonly & ref
+  while (isReadonly(rawTarget) || isRef(rawTarget)) {
     rawTarget = unRef(rawTarget);
+    rawTarget =
+      rawTarget[ReactiveFlag.RAW] !== undefined ? rawTarget[ReactiveFlag.RAW] : rawTarget;
   }
 
   // unobserve target if it is observable
@@ -89,7 +86,11 @@ export function isShallow(target) {
   return isObject(target) && !!target[ReactiveFlag.SHALLOW];
 }
 
-function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean) {
+function createReactiveObject<T extends object>(
+  target: T,
+  shallow: boolean,
+  readonly: boolean
+) {
   // avoid calling reactive/readonly() on a readonly object
   // avoid calling reactive() on a reactive object
 
