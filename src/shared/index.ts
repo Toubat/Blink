@@ -1,11 +1,11 @@
 export const NOOP = () => {};
 
 export const isObject = (val: unknown) => {
-  return val !== null && typeof val === 'object';
+  return val !== null && typeof val === "object";
 };
 
 export const isFunction = (val: unknown) => {
-  return typeof val === 'function';
+  return typeof val === "function";
 };
 
 export const isPrimitive = (val: unknown) => {
@@ -29,7 +29,8 @@ export const bind = <T extends object>(target: T, value) => {
   return isFunction(value) ? value.bind(target) : value;
 };
 
-export const hasChanged = (value: any, oldValue: any): boolean => !Object.is(value, oldValue);
+export const hasChanged = (value: any, oldValue: any): boolean =>
+  !Object.is(value, oldValue);
 
 export const warn = (msg: string) => {
   console.warn(msg);

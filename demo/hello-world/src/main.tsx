@@ -1,22 +1,31 @@
-import { reactive, effect, createView } from '../../../dist';
-import './style.css';
+import { reactive, effect, createView, ref } from "../../../dist";
 
-const app = document.querySelector<HTMLDivElement>('#app')!;
+const app = document.querySelector<HTMLDivElement>("#app")!;
 
-const a = reactive({ foo: 1 });
-
-const App = (
+const JSX = (
   <div>
-    <p>ASDASDASDASDAD</p>
-    Hello
-    <ul>
-      <li>1</li>
-      <li>2</li>
-      <li>3</li>
-    </ul>
+    <p style="color: green">ASDASDASDASDAD</p>
+    nested
   </div>
 );
 
-const view = createView(App);
+const App = () => {
+  const data = ref(123);
+
+  return (
+    <div>
+      <p style="color: red">ASDASDASDASDAD</p>
+      Hello {data.value}
+      <ul>
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+      </ul>
+      {JSX}
+    </div>
+  );
+};
+
+const view = createView(<App a={1} />);
 
 view.render(app);
