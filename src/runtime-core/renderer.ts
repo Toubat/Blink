@@ -22,7 +22,7 @@ export function renderComponentVNode(node: VNode, container: HTMLElement) {
   const { type, props, children } = node;
 
   const initFn = type as Function;
-  const creator: VNodeCreator = initFn();
+  const creator: VNodeCreator = initFn(props);
   // TODO: setup component
 
   instantiate(creator, container);

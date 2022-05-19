@@ -1,4 +1,4 @@
-import { reactive, effect, createView, ref } from "../../../dist";
+import { createView, ref } from "../../../dist";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -9,8 +9,8 @@ const JSX = (
   </div>
 );
 
-const App = () => {
-  const data = ref(123);
+const App = ({ a }) => {
+  const data = ref(a);
 
   return (
     <div>
@@ -26,6 +26,6 @@ const App = () => {
   );
 };
 
-const view = createView(<App a={1} />);
+const view = createView(<App a={133} />);
 
 view.render(app);
