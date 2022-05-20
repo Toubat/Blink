@@ -1,3 +1,3 @@
-import { createVNodeCreator } from "./node";
+import { createVNodeCreator } from "./vnode";
 
 export const h = createVNodeCreator;

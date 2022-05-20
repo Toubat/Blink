@@ -9,48 +9,48 @@ import {
   VNodeCreator,
   Text,
   Inline,
-  Fragment,
   VNodeChild,
-} from "./node";
+} from "./vnode";
 
+export type HostElement = HTMLElement;
 const createElement = document.createElement.bind(document);
 
-export function renderRoot(root: VNodeCreator, container: HTMLElement) {
+export function renderRoot(root: VNodeCreator, container: HostElement) {
   initVNode(root, container);
 }
 
-function initVNode(creator: VNodeCreator, container: HTMLElement) {
+function initVNode(creator: VNodeCreator, container: HostElement) {
+  // TODO: reactify
   const vnode = creator();
 
   console.log(vnode.children);
 
-  switch (vnode.type) {
+  const renderVNode = getVNodeRenderer(vnode);
+  renderVNode(vnode, container);
+}
+
+function getVNodeRenderer(node: VNode) {
+  switch (node.type) {
     case Text:
-      renderTextVNode(vnode, container);
-      break;
+      return renderTextVNode;
     case Inline:
-      renderInlineVNode(vnode, container);
-      break;
+      return renderInlineVNode;
     default:
-      if (isFunction(vnode.type)) {
-        renderComponentVNode(vnode, container);
-      } else {
-        renderElementVNode(vnode, container);
-      }
+      return isFunction(node.type) ? renderComponentVNode : renderElementVNode;
   }
 }
 
-export function renderComponentVNode(node: VNode, container: HTMLElement) {
+export function renderComponentVNode(node: VNode, container: HostElement) {
   const { type, props, children } = node;
 
   const component = type as BlockComponent;
-  const creator = component(props);
+  const creator = component({ ...props, children });
   // TODO: setup component
 
   initVNode(creator, container);
 }
 
-export function renderElementVNode(node: VNode, container: HTMLElement) {
+export function renderElementVNode(node: VNode, container: HostElement) {
   const { type, props, children } = node;
 
   const el = createElement(type as string);
@@ -61,14 +61,14 @@ export function renderElementVNode(node: VNode, container: HTMLElement) {
   container.appendChild(el);
 }
 
-function renderTextVNode(node: VNode, container: HTMLElement) {
+function renderTextVNode(node: VNode, container: HostElement) {
   const { children } = node;
 
   const text = children[0] as string;
   container.appendChild(document.createTextNode(text));
 }
 
-export function renderInlineVNode(node: VNode, container: HTMLElement) {
+export function renderInlineVNode(node: VNode, container: HostElement) {
   const { props, children } = node;
 
   const component = children[0] as InlineComponent;
@@ -78,13 +78,13 @@ export function renderInlineVNode(node: VNode, container: HTMLElement) {
   renderChild(result, container);
 }
 
-function renderChildren(children: VNodeChildren, container: HTMLElement) {
+function renderChildren(children: VNodeChildren, container: HostElement) {
   children.forEach((child) => {
     renderChild(child, container);
   });
 }
 
-function renderChild(child: VNodeChild, container: HTMLElement) {
+function renderChild(child: VNodeChild, container: HostElement) {
   if (isVNodeCreator(child)) {
     initVNode(child as VNodeCreator, container);
   } else if (isFunction(child)) {

@@ -1,24 +1,25 @@
-import { configure } from 'mobx';
-import { describe, it, expect, vi } from 'vitest';
-import { computed } from '../computed';
-import { reactive, ReactiveFlag } from '../reactive';
-import { effect } from '../effect';
+import { configure } from "mobx";
+import { describe, it, expect, vi } from "vitest";
+import { computed } from "../computed";
+import { reactive, ReactiveFlag } from "../reactive";
+import { effect } from "../effect";
+import { isRef } from "../ref";
 
 configure({
-  enforceActions: 'never',
-  useProxies: 'always',
+  enforceActions: "never",
+  useProxies: "always",
 });
 
-describe('reactivity/computed', () => {
-  it('happy path', () => {
+describe("reactivity/computed", () => {
+  it("happy path", () => {
     const observed = reactive({ foo: 1 });
     const foo = computed<number>(() => observed.foo + 1);
 
-    expect(foo[ReactiveFlag.REF]).to.equal(true);
+    expect(isRef(foo)).to.equal(true);
     expect(foo.value).to.equal(2);
   });
 
-  it('should recompute', () => {
+  it("should recompute", () => {
     const observed = reactive({ foo: 1 });
     const foo = computed(() => observed.foo + 1);
 
@@ -26,40 +27,42 @@ describe('reactivity/computed', () => {
     expect(foo.value).to.equal(3);
   });
 
-  it('should trigger effect', () => {
-    const observed = reactive({ foo: 'Hello', bar: 'World' });
-    const data = computed<string>(() => observed.foo + ' ' + observed.bar);
+  it("should trigger effect", () => {
+    const observed = reactive({ foo: "Hello", bar: "World" });
+    const data = computed<string>(() => observed.foo + " " + observed.bar);
     let dummy;
 
     effect(() => {
       dummy = data.value;
     });
 
-    expect(dummy).to.equal('Hello World');
-    observed.foo = 'Goodbye';
-    expect(dummy).to.equal('Goodbye World');
+    expect(dummy).to.equal("Hello World");
+    observed.foo = "Goodbye";
+    expect(dummy).to.equal("Goodbye World");
   });
 
-  it('should set value inversely', () => {
-    const observed = reactive({ foo: 'Hello', bar: 'World' });
+  it("should set value inversely", () => {
+    const observed = reactive({ foo: "Hello", bar: "World" });
     const data = computed<string>({
       get() {
-        return observed.foo + ' ' + observed.bar;
+        return observed.foo + " " + observed.bar;
       },
       set(value) {
-        [observed.foo, observed.bar] = value.split(' ');
+        [observed.foo, observed.bar] = value.split(" ");
       },
     });
 
-    expect(data.value).to.equal('Hello World');
-    data.value = 'World Hello';
-    expect(data.value).to.equal('World Hello');
+    expect(data.value).to.equal("Hello World");
+    data.value = "World Hello";
+    expect(data.value).to.equal("World Hello");
   });
 
-  it('should compute lazily', () => {
+  it("should compute lazily", () => {
     const observed = reactive({ foo: 2 });
     const spyGetter = vi.fn().mockImplementation(() => observed.foo * observed.foo);
-    const spySetter = vi.fn().mockImplementation((value) => (observed.foo = Math.sqrt(value)));
+    const spySetter = vi
+      .fn()
+      .mockImplementation((value) => (observed.foo = Math.sqrt(value)));
     const square = computed<number>({
       get: spyGetter,
       set: spySetter,
@@ -76,10 +79,12 @@ describe('reactivity/computed', () => {
     expect(spySetter).toHaveBeenCalledTimes(1);
   });
 
-  it('should only call setter once when new/old values are the same', () => {
+  it("should only call setter once when new/old values are the same", () => {
     const observed = reactive({ foo: 2 });
     const spyGetter = vi.fn().mockImplementation(() => observed.foo * observed.foo);
-    const spySetter = vi.fn().mockImplementation((value) => (observed.foo = Math.sqrt(value)));
+    const spySetter = vi
+      .fn()
+      .mockImplementation((value) => (observed.foo = Math.sqrt(value)));
     const square = computed<number>({
       get: spyGetter,
       set: spySetter,
@@ -110,7 +115,7 @@ describe('reactivity/computed', () => {
     expect(dummy).to.equal(4);
   });
 
-  it('should set computed value without calling value()', () => {
+  it("should set computed value without calling value()", () => {
     const observed = reactive({ foo: 1 });
     const data = reactive({
       num: computed<number>({

@@ -18,6 +18,7 @@ export type VNodeType =
 export type VNodeProps = object;
 
 export type VNodeChild = string | VNodeCreator | InlineComponent;
+
 export type VNodeChildren = VNodeChild[];
 
 export interface VNodeCreator {
