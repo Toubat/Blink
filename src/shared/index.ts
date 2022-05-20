@@ -1,5 +1,7 @@
 export const NOOP = () => {};
 
+export const EMPTY_OBJ = {};
+
 export const isObject = (val: unknown) => {
   return val !== null && typeof val === "object";
 };

@@ -13,20 +13,23 @@ export interface AppProps {
 
 const App: FC<AppProps> = ({ a: data, children }) => {
   return (
-    <div>
+    <>
       <p style="color: red">App</p>
       Hello {data.value}
       <ul>
         <li>{data}</li>
-        {() => (data.value === 133 ? <li>133</li> : "Not 133")}
+        {() => {
+          const c = ref(222);
+          return data.value === 133 ? <li>133</li> : <li>{c.value}</li>;
+        }}
       </ul>
       {...children}
-    </div>
+    </>
   );
 };
 
 const JSX = () => (
-  <div>
+  <>
     <p style="color: green">ASDASDASDASDAD</p>
     JSX element
     <App a={a}>
@@ -41,7 +44,7 @@ const JSX = () => (
         <li>child {a.value}</li>
       </ol>
     </App>
-  </div>
+  </>
 );
 
 effect(() => {

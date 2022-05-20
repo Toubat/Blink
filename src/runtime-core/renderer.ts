@@ -1,4 +1,5 @@
-import { isFunction } from "../shared";
+import { isString } from "mobx/dist/internal";
+import { isFunction, EMPTY_OBJ, warn, isPrimitive } from "../shared";
 import { BlockComponent, InlineComponent } from "./component";
 import { initProps } from "./component-props";
 import {
@@ -10,6 +11,7 @@ import {
   Text,
   Inline,
   VNodeChild,
+  Fragment,
 } from "./vnode";
 
 export type HostElement = HTMLElement;
@@ -20,6 +22,11 @@ export function renderRoot(root: VNodeCreator, container: HostElement) {
 }
 
 function initVNode(creator: VNodeCreator, container: HostElement) {
+  if (isPrimitive(creator)) {
+    warn("Functional component should return JSX element, not primitive value");
+    return;
+  }
+
   // TODO: reactify
   const vnode = creator();
 
@@ -31,6 +38,8 @@ function initVNode(creator: VNodeCreator, container: HostElement) {
 
 function getVNodeRenderer(node: VNode) {
   switch (node.type) {
+    case Fragment:
+      return renderFragmentVNode;
     case Text:
       return renderTextVNode;
     case Inline:
@@ -38,6 +47,12 @@ function getVNodeRenderer(node: VNode) {
     default:
       return isFunction(node.type) ? renderComponentVNode : renderElementVNode;
   }
+}
+
+export function renderFragmentVNode(node: VNode, container: HostElement) {
+  const { children } = node;
+
+  renderChildren(children, container);
 }
 
 export function renderComponentVNode(node: VNode, container: HostElement) {
@@ -69,7 +84,7 @@ function renderTextVNode(node: VNode, container: HostElement) {
 }
 
 export function renderInlineVNode(node: VNode, container: HostElement) {
-  const { props, children } = node;
+  const { children } = node;
 
   const component = children[0] as InlineComponent;
   // invoke inline component
@@ -88,10 +103,10 @@ function renderChild(child: VNodeChild, container: HostElement) {
   if (isVNodeCreator(child)) {
     initVNode(child as VNodeCreator, container);
   } else if (isFunction(child)) {
-    const inlineCreator = createVNodeCreator(Inline, {}, child);
+    const inlineCreator = createVNodeCreator(Inline, EMPTY_OBJ, child);
     initVNode(inlineCreator, container);
   } else {
-    const textCreator = createVNodeCreator(Text, {}, child);
+    const textCreator = createVNodeCreator(Text, EMPTY_OBJ, child);
     initVNode(textCreator, container);
   }
 }

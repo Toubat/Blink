@@ -5,6 +5,6 @@ export default defineConfig({
   esbuild: {
     jsxInject: `import * as Blink from '../../../dist';`,
     jsxFactory: "Blink.h",
-    jsxFragment: "Fragment",
+    jsxFragment: "Blink.Fragment",
   },
 });
