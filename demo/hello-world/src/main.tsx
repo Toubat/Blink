@@ -11,7 +11,7 @@ export interface AppProps {
   a: Ref<number>;
 }
 
-const c = ref(222);
+const c = ref("green");
 
 const App: FC<AppProps> = ({ a: data, children }) => {
   return (
@@ -19,7 +19,7 @@ const App: FC<AppProps> = ({ a: data, children }) => {
       <p style="color: red">App</p>
       <p
         style={{
-          color: "green",
+          color: c,
         }}
       >
         App obj style
@@ -35,7 +35,9 @@ const App: FC<AppProps> = ({ a: data, children }) => {
         >
           object class
         </li>
-        <li class={["blue", "bg-red"]}>array class</li>
+        <li class={["blue", r(() => (a.value === 133 ? "bg-orange" : null))]}>
+          array class
+        </li>
         {() => {
           return r(() =>
             data.value === 133 ? (
@@ -52,7 +54,7 @@ const App: FC<AppProps> = ({ a: data, children }) => {
 };
 
 const JSX = () => (
-  <>
+  <div>
     <p style="color: green">ASDASDASDASDAD</p>
     JSX element
     <App a={a}>
@@ -64,7 +66,7 @@ const JSX = () => (
         <li>child {a.value}</li>
       </ol>
     </App>
-  </>
+  </div>
 );
 
 const view = createView(<JSX />);
@@ -73,11 +75,13 @@ view.render(app);
 
 setTimeout(() => {
   a.value = 133;
-}, 1000);
+  c.value = "blue";
+}, 2000);
 
 const b = () => {
   console.log("b");
 };
+
 const symbol = Symbol("asd");
 b[symbol] = 0;
 console.log(b());

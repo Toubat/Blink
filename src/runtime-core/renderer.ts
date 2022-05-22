@@ -6,7 +6,6 @@ import { setProps } from "./props";
 import {
   createJSXElement,
   isJSXElement,
-  VNode,
   VNodeChildren,
   JSXElement,
   Text,
@@ -18,29 +17,22 @@ export type HostElement = HTMLElement;
 const createElement = document.createElement.bind(document);
 
 export function renderRoot(root: JSXElement, container: HostElement) {
-  if (!isJSXElement(root)) {
-    warn(`Root component should be a JSX element, but got ${root} instead.`);
-    return;
-  }
+  // if (!isJSXElement(root)) {
+  //   warn(`Root component should be a JSX element, but got ${root} instead.`);
+  //   return;
+  // }
   initVNode(root, container);
 }
 
-function initVNode(jsx: JSXElement, container: HostElement) {
-  // if (isPrimitive(creator)) {
-  //   warn(`Functional component should return JSX element, but got ${creator} instead.`);
-  //   return;
-  // }
-
+function initVNode(node: JSXElement, container: HostElement) {
   // { type, props, children } = vnode
-  const vnode = jsx();
+  console.log(node.children);
 
-  console.log(vnode.children);
-
-  const renderVNode = getVNodeRenderer(vnode);
-  renderVNode(vnode, container);
+  const renderVNode = getVNodeRenderer(node);
+  renderVNode(node, container);
 }
 
-function getVNodeRenderer(node: VNode) {
+function getVNodeRenderer(node: JSXElement) {
   switch (node.type) {
     case Fragment:
       return renderFragmentVNode;
@@ -51,13 +43,13 @@ function getVNodeRenderer(node: VNode) {
   }
 }
 
-export function renderFragmentVNode(node: VNode, container: HostElement) {
+export function renderFragmentVNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
   renderChildren(children, container);
 }
 
-export function renderComponentVNode(node: VNode, container: HostElement) {
+export function renderComponentVNode(node: JSXElement, container: HostElement) {
   const { type, props, children } = node;
 
   const setup = type as Component;
@@ -71,7 +63,7 @@ export function renderComponentVNode(node: VNode, container: HostElement) {
   // TODO: deactivate reactive context
 }
 
-export function renderElementVNode(node: VNode, container: HostElement) {
+export function renderElementVNode(node: JSXElement, container: HostElement) {
   const { type, props, children } = node;
 
   const el = createElement(type as string);
@@ -82,7 +74,7 @@ export function renderElementVNode(node: VNode, container: HostElement) {
   container.appendChild(el);
 }
 
-function renderTextVNode(node: VNode, container: HostElement) {
+function renderTextVNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
   const text = children[0] as string;

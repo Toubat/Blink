@@ -17,14 +17,10 @@ export type VNodeChild = string | JSXElement | Component | Ref;
 export type VNodeChildren = VNodeChild[];
 
 export interface JSXElement {
-  (): VNode;
-  [JSX_ELEMENT]: boolean;
-}
-
-export interface VNode {
   type: VNodeType;
   props: VNodeProps;
   children: VNodeChildren;
+  [JSX_ELEMENT]: boolean;
 }
 
 export function createJSXElement(
@@ -32,27 +28,16 @@ export function createJSXElement(
   props: VNodeProps | Null,
   ...children: VNodeChildren
 ): JSXElement {
-  const createVNodeFn = () => createVNode(type, props, ...children);
-  const creator = createVNodeFn as JSXElement;
-  creator[JSX_ELEMENT] = true;
+  const node: JSXElement = {
+    type,
+    props: props || {},
+    children,
+    [JSX_ELEMENT]: true,
+  };
 
-  return creator;
+  return node;
 }
 
 export function isJSXElement(value: any): boolean {
   return value && !!value[JSX_ELEMENT];
-}
-
-function createVNode(
-  type: VNodeType,
-  props: VNodeProps | Null,
-  ...children: VNodeChildren
-): VNode {
-  const node: VNode = {
-    type,
-    props: props || {},
-    children,
-  };
-
-  return node;
 }
