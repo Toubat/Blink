@@ -2,6 +2,16 @@ export const NOOP = () => {};
 
 export const EMPTY_OBJ = {};
 
+export const isNull = (val: unknown) => {
+  return val === null || val === undefined;
+};
+
+export const isString = (val: unknown) => {
+  return val !== null && typeof val === "string";
+};
+
+export const isArray = Array.isArray;
+
 export const isObject = (val: unknown) => {
   return val !== null && typeof val === "object";
 };
@@ -34,6 +44,11 @@ export const bind = <T extends object>(target: T, value) => {
 export const hasChanged = (value: any, oldValue: any): boolean =>
   !Object.is(value, oldValue);
 
+export const evalNestedFn = (value: any) => {
+  if (isFunction(value)) return evalNestedFn(value());
+  return value;
+};
+
 export const warn = (msg: string) => {
-  console.warn(msg);
+  console.warn(`[Blink warn]: ${msg}`);
 };

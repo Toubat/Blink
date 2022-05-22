@@ -1,7 +1,7 @@
-import { VNodeCreator } from "./vnode";
+import { JSXElement } from "./vnode";
 import { renderRoot } from "./renderer";
 
-export function createView(rootComponent: VNodeCreator) {
+export function createView(rootComponent: JSXElement) {
   return {
     render(container: HTMLElement) {
       renderRoot(rootComponent, container);

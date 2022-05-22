@@ -1,3 +1,8 @@
-import { createVNodeCreator } from "./vnode";
+import { computed } from "../reactivity";
+import { createJSXElement } from "./vnode";
 
-export const h = createVNodeCreator;
+export const h = createJSXElement;
+
+export function r<T>(fn: () => T) {
+  return computed(fn);
+}

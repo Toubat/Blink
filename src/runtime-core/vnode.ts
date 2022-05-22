@@ -1,29 +1,24 @@
+import { Ref } from "../reactivity";
 import { Null } from "../shared/types";
-import { BlockComponent, InlineComponent } from "./component";
+import { Component } from "./component";
 
-const NODE_CREATOR = Symbol("node_creator");
+const JSX_ELEMENT = Symbol("jsx-element");
 
 // VNode flags
 export const Text = Symbol("text");
 export const Fragment = Symbol("fragment");
-export const Inline = Symbol("inline");
 
-export type VNodeType =
-  | string
-  | BlockComponent
-  | typeof Text
-  | typeof Fragment
-  | typeof Inline;
+export type VNodeType = string | Component | typeof Text | typeof Fragment;
 
 export type VNodeProps = object;
 
-export type VNodeChild = string | VNodeCreator | BlockComponent;
+export type VNodeChild = string | JSXElement | Component | Ref;
 
 export type VNodeChildren = VNodeChild[];
 
-export interface VNodeCreator {
+export interface JSXElement {
   (): VNode;
-  [NODE_CREATOR]: boolean;
+  [JSX_ELEMENT]: boolean;
 }
 
 export interface VNode {
@@ -32,20 +27,20 @@ export interface VNode {
   children: VNodeChildren;
 }
 
-export function createVNodeCreator(
+export function createJSXElement(
   type: VNodeType,
   props: VNodeProps | Null,
   ...children: VNodeChildren
-): VNodeCreator {
+): JSXElement {
   const createVNodeFn = () => createVNode(type, props, ...children);
-  const creator = createVNodeFn as VNodeCreator;
-  creator[NODE_CREATOR] = true;
+  const creator = createVNodeFn as JSXElement;
+  creator[JSX_ELEMENT] = true;
 
   return creator;
 }
 
-export function isVNodeCreator(value: any): boolean {
-  return value && !!value[NODE_CREATOR];
+export function isJSXElement(value: any): boolean {
+  return value && !!value[JSX_ELEMENT];
 }
 
 function createVNode(

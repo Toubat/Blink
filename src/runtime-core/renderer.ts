@@ -1,15 +1,15 @@
-import { isString } from "mobx/dist/internal";
-import { isFunction, EMPTY_OBJ, warn, isPrimitive } from "../shared";
-import { BlockComponent, InlineComponent } from "./component";
-import { initProps } from "./component-props";
+import { reaction } from "mobx";
+import { isRef, unRef, untrack } from "../reactivity";
+import { isFunction, EMPTY_OBJ, warn, isPrimitive, evalNestedFn } from "../shared";
+import { Component } from "./component";
+import { setProps } from "./props";
 import {
-  createVNodeCreator,
-  isVNodeCreator,
+  createJSXElement,
+  isJSXElement,
   VNode,
   VNodeChildren,
-  VNodeCreator,
+  JSXElement,
   Text,
-  Inline,
   VNodeChild,
   Fragment,
 } from "./vnode";
@@ -17,18 +17,22 @@ import {
 export type HostElement = HTMLElement;
 const createElement = document.createElement.bind(document);
 
-export function renderRoot(root: VNodeCreator, container: HostElement) {
+export function renderRoot(root: JSXElement, container: HostElement) {
+  if (!isJSXElement(root)) {
+    warn(`Root component should be a JSX element, but got ${root} instead.`);
+    return;
+  }
   initVNode(root, container);
 }
 
-function initVNode(creator: VNodeCreator, container: HostElement) {
-  if (isPrimitive(creator)) {
-    warn("Functional component should return JSX element, not primitive value");
-    return;
-  }
+function initVNode(jsx: JSXElement, container: HostElement) {
+  // if (isPrimitive(creator)) {
+  //   warn(`Functional component should return JSX element, but got ${creator} instead.`);
+  //   return;
+  // }
 
-  // TODO: reactify
-  const vnode = creator();
+  // { type, props, children } = vnode
+  const vnode = jsx();
 
   console.log(vnode.children);
 
@@ -42,8 +46,6 @@ function getVNodeRenderer(node: VNode) {
       return renderFragmentVNode;
     case Text:
       return renderTextVNode;
-    case Inline:
-      return renderInlineVNode;
     default:
       return isFunction(node.type) ? renderComponentVNode : renderElementVNode;
   }
@@ -58,11 +60,15 @@ export function renderFragmentVNode(node: VNode, container: HostElement) {
 export function renderComponentVNode(node: VNode, container: HostElement) {
   const { type, props, children } = node;
 
-  const component = type as BlockComponent;
-  const creator = component({ ...props, children });
+  const setup = type as Component;
+
+  // TODO: activate reactive context to collect reactive effect during setup stage
+  const creator = untrack(() => setup({ ...props, children }));
+
   // TODO: setup component
 
-  initVNode(creator, container);
+  renderChild(creator, container);
+  // TODO: deactivate reactive context
 }
 
 export function renderElementVNode(node: VNode, container: HostElement) {
@@ -70,7 +76,7 @@ export function renderElementVNode(node: VNode, container: HostElement) {
 
   const el = createElement(type as string);
 
-  initProps(props, el);
+  setProps(props, el);
   renderChildren(children, el);
 
   container.appendChild(el);
@@ -83,32 +89,27 @@ function renderTextVNode(node: VNode, container: HostElement) {
   container.appendChild(document.createTextNode(text));
 }
 
-export function renderInlineVNode(node: VNode, container: HostElement) {
-  const { children } = node;
-
-  const component = children[0] as InlineComponent;
-  // invoke inline component
-  const result = component();
-
-  renderChild(result, container);
-}
-
 function renderChildren(children: VNodeChildren, container: HostElement) {
   children.forEach((child) => {
     renderChild(child, container);
   });
 }
 
-function renderChild(child: VNodeChild, container: HostElement) {
-  if (isVNodeCreator(child)) {
-    initVNode(child as VNodeCreator, container);
-  } else if (isFunction(child)) {
-    const inlineCreator = createVNodeCreator(Inline, EMPTY_OBJ, child);
-    initVNode(inlineCreator, container);
-  } else {
-    const textCreator = createVNodeCreator(Text, EMPTY_OBJ, child);
-    initVNode(textCreator, container);
+function renderChild(child: VNodeChild, container: HostElement): void {
+  if (isJSXElement(child)) {
+    return initVNode(child as JSXElement, container);
   }
+
+  if (isFunction(child)) {
+    return renderChild((child as Function)(), container);
+  }
+
+  if (isRef(child)) {
+    return renderChild(unRef(child), container);
+  }
+
+  const textElement = createJSXElement(Text, EMPTY_OBJ, child);
+  return initVNode(textElement, container);
 }
 
 /**

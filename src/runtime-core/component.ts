@@ -1,4 +1,3 @@
-import { VNodeCreator } from "./vnode";
+import { JSXElement } from "./vnode";
 
-export type BlockComponent = (props: object) => VNodeCreator;
-export type InlineComponent = () => VNodeCreator | string;
+export type Component = (props: object) => JSXElement;
