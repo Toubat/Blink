@@ -27,6 +27,19 @@ describe("reactivity/computed", () => {
     expect(foo.value).to.equal(3);
   });
 
+  it("access inner value of reactive object", () => {
+    const observed = reactive({ foo: { nested: 1 } });
+    const foo = computed(() => observed);
+    let dummy;
+    effect(() => {
+      dummy = observed.foo.nested;
+    });
+
+    expect(dummy).toBe(1);
+    observed.foo.nested = 2;
+    expect(dummy).toBe(2);
+  });
+
   it("should trigger effect", () => {
     const observed = reactive({ foo: "Hello", bar: "World" });
     const data = computed<string>(() => observed.foo + " " + observed.bar);
