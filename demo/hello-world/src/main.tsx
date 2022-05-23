@@ -29,16 +29,16 @@ const App: FC<AppProps> = ({ a: data, children }) => {
         <li>{data}</li>
         <li
           class={{
-            blue: r(() => a.value === 133),
-            "bg-red": r(() => a.value === 133),
+            blue: r(() => a.value % 2 === 0),
+            "bg-red": r(() => a.value % 2 === 0),
           }}
         >
           object class
         </li>
-        <li class={["blue", r(() => (a.value === 133 ? "bg-orange" : null))]}>
+        <li class={["blue", r(() => (a.value % 2 === 0 ? "bg-orange" : null))]}>
           array class
         </li>
-        {Symbol("1234")}
+        <button onClick={() => a.value++}>Click</button>
         {() => {
           return r(() =>
             data.value === 133 ? (
@@ -76,9 +76,8 @@ const view = createView(<JSX />);
 view.render(app);
 
 setTimeout(() => {
-  a.value = 133;
   c.value = "blue";
-}, 2000);
+}, 1000);
 
 const b = () => {
   console.log("b");

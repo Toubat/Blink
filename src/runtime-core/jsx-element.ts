@@ -1,4 +1,4 @@
-import { Ref } from "../reactivity";
+import { Ref } from "../index";
 import { EMPTY_OBJ, EMPTY_ARRAY } from "../shared";
 import { Null } from "../shared/types";
 import { Component } from "./component";

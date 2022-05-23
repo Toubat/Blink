@@ -1,8 +1,8 @@
-import { makeAutoObservable } from 'mobx';
-import { hasChanged, isObject } from '../shared';
-import { CollectionTypes } from './collectionHandlers';
-import { untrack } from './effect';
-import { reactive, ReactiveFlag, toRaw } from './reactive';
+import { makeAutoObservable } from "mobx";
+import { hasChanged, isObject } from "../shared";
+import { CollectionTypes } from "./collectionHandlers";
+import { untrack } from "./effect";
+import { reactive, ReactiveFlag, toRaw } from "./reactive";
 
 export type Ref<T = any> = {
   value: T;
@@ -11,7 +11,9 @@ export type Ref<T = any> = {
 
 type BaseTypes = string | number | boolean;
 
-export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRefSimple<V> : UnwrapRefSimple<T>;
+export type UnwrapRef<T> = T extends Ref<infer V>
+  ? UnwrapRefSimple<V>
+  : UnwrapRefSimple<T>;
 export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>;
 export type UnwrapRefSimple<T> = T extends Function | CollectionTypes | BaseTypes | Ref
   ? T
@@ -74,4 +76,21 @@ export function shallowRef(value) {
   if (isRef(value)) return value;
 
   return new RefImpl(value, true);
+}
+
+export function proxyRef<T extends object>(target: T): UnwrapNestedRefs<T> {
+  return new Proxy(target, {
+    get(target, key) {
+      return unRef(Reflect.get(target, key));
+    },
+    set(target, key, value) {
+      const res = untrack(() => Reflect.get(target, key));
+
+      if (isRef(res) && !isRef(value)) {
+        return (res.value = value);
+      } else {
+        return Reflect.set(target, key, value);
+      }
+    },
+  }) as UnwrapRef<T>;
 }

@@ -1,16 +1,16 @@
-import { configure, isObservable } from 'mobx';
-import { describe, expect, it, vi } from 'vitest';
-import { isReactive, isReadonly, isShallow, reactive, readonly } from '../reactive';
-import { isRef, Ref, ref, shallowRef, unRef } from '../ref';
-import { effect } from '../effect';
+import { configure, isObservable } from "mobx";
+import { describe, expect, it, vi } from "vitest";
+import { isReactive, isReadonly, isShallow, reactive, readonly } from "../reactive";
+import { isRef, proxyRef, Ref, ref, shallowRef, unRef } from "../ref";
+import { effect } from "../effect";
 
 configure({
-  enforceActions: 'never',
-  useProxies: 'always',
+  enforceActions: "never",
+  useProxies: "always",
 });
 
-describe('reactivity/ref', () => {
-  it('happy path', () => {
+describe("reactivity/ref", () => {
+  it("happy path", () => {
     const observed = ref(1);
 
     expect(isObservable(observed)).toBe(true);
@@ -19,7 +19,7 @@ describe('reactivity/ref', () => {
     expect(observed.value).toBe(2);
   });
 
-  it('should trigger effect', () => {
+  it("should trigger effect", () => {
     const observed = ref(1);
     const spy = vi.fn().mockImplementation(() => observed.value);
     effect(spy);
@@ -29,7 +29,7 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('should not trigger effect when value is not changed', () => {
+  it("should not trigger effect when value is not changed", () => {
     const observed = ref(1);
     const spy = vi.fn().mockImplementation(() => observed.value);
     effect(spy);
@@ -38,7 +38,7 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should make nested properties reactive', () => {
+  it("should make nested properties reactive", () => {
     const a = ref({
       count: 1,
     });
@@ -54,7 +54,7 @@ describe('reactivity/ref', () => {
     expect(dummy).toBe(2);
   });
 
-  it('should detect whether object is a ref', () => {
+  it("should detect whether object is a ref", () => {
     const a = ref(1);
     const user = reactive({ age: 1 });
 
@@ -63,14 +63,14 @@ describe('reactivity/ref', () => {
     expect(isRef(user)).toBe(false);
   });
 
-  it('should unwrap ref', () => {
+  it("should unwrap ref", () => {
     const a = ref(1);
 
     expect(unRef(a)).toBe(1);
     expect(unRef(1)).toBe(1);
   });
 
-  it('should unwrap ref value in reactive object', () => {
+  it("should unwrap ref value in reactive object", () => {
     const observed = reactive({
       num: ref(1),
     });
@@ -87,7 +87,7 @@ describe('reactivity/ref', () => {
     expect(observed.num).to.equal(2);
   });
 
-  it('should unwrap ref value in ref array', () => {
+  it("should unwrap ref value in ref array", () => {
     const observed = ref([1, 2, ref(0)]);
     const spy = vi.fn().mockImplementation(() => observed.value[2]);
     effect(spy);
@@ -99,7 +99,7 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('should not trigger change on shallow ref', () => {
+  it("should not trigger change on shallow ref", () => {
     const observed = shallowRef({ foo: 1 });
     const spy = vi.fn().mockImplementation(() => observed.value.foo);
     effect(spy);
@@ -115,7 +115,7 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('shallow ref should not unwrap ref value', () => {
+  it("shallow ref should not unwrap ref value", () => {
     const observed = shallowRef<any>([1, 2, ref(0)]);
     const spy = vi.fn().mockImplementation(() => observed.value[2].value);
     effect(spy);
@@ -126,7 +126,7 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('reactive(ref()) should not unwrap ref', () => {
+  it("reactive(ref()) should not unwrap ref", () => {
     const observed = reactive(ref(1));
     const spy = vi.fn().mockImplementation(() => observed.value);
     effect(spy);
@@ -138,7 +138,7 @@ describe('reactivity/ref', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('reactive(ref())', () => {
+  it("reactive(ref())", () => {
     const num = ref(1);
     const observed = reactive({
       foo: ref(num),
@@ -149,7 +149,7 @@ describe('reactivity/ref', () => {
     expect(observed.foo).toBe(2);
   });
 
-  it('ref(readonly()) retain readonly property', () => {
+  it("ref(readonly()) retain readonly property", () => {
     const num = ref(readonly({ foo: 1 }));
     console.warn = vi.fn();
 
@@ -160,7 +160,7 @@ describe('reactivity/ref', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
-  it('readonly(ref()) make wrapped ref readonly', () => {
+  it("readonly(ref()) make wrapped ref readonly", () => {
     const observed = readonly(ref({ foo: 1 }));
     console.warn = vi.fn();
 
@@ -171,7 +171,7 @@ describe('reactivity/ref', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
-  it('type inference for ref', () => {
+  it("type inference for ref", () => {
     const a = reactive({
       num: ref(ref(ref(1))),
     });
@@ -183,5 +183,31 @@ describe('reactivity/ref', () => {
     expect(b.value).to.deep.equal({ foo: 1 });
     b.value.foo = 2;
     expect(b.value).to.deep.equal({ foo: 2 });
+  });
+
+  it("proxyRef should unwrap nested ref", () => {
+    const observed = proxyRef(ref({ foo: 1 }));
+    expect(observed.value.foo).toBe(1);
+
+    const observed2 = proxyRef({
+      foo: ref(1),
+    });
+    expect(observed2.foo).toBe(1);
+  });
+
+  it("proxyRef should make nested ref reactive", () => {
+    const refValue = ref(1);
+    const observed = proxyRef({
+      foo: refValue,
+    });
+
+    let dummy;
+    effect(() => {
+      dummy = observed.foo;
+    });
+
+    expect(dummy).toBe(1);
+    refValue.value = 2;
+    expect(dummy).toBe(2);
   });
 });

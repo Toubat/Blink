@@ -1,5 +1,5 @@
-import { isRef, Ref, unRef, untrack } from "../reactivity";
-import { isString, isFunction, EMPTY_OBJ, isNumber, warn } from "../shared";
+import { effect, isRef, Ref, unRef, untrack } from "../reactivity";
+import { isString, isFunction, EMPTY_OBJ, isNumber, warn, isNull } from "../shared";
 import { Component } from "./component";
 import { setProps } from "./props";
 import {
@@ -14,16 +14,20 @@ import {
   Derived,
 } from "./jsx-element";
 
+// TODO: refactor these into a separate directory
 export type HostElement = HTMLElement;
 export type HostText = Text;
-const createElement = document.createElement.bind(document);
-const createTextElement = document.createTextNode.bind(document);
-const insertElement = (
+export const createElement = document.createElement.bind(document);
+export const createTextElement = document.createTextNode.bind(document);
+export const insertElement = (
   container: HostElement,
   el: HostElement | HostText,
   anchor?: HostElement
 ) => {
   container.insertBefore(el, anchor || null);
+};
+export const setBaseProp = (container: HostElement, prop: string, value: any) => {
+  isNull(value) ? container.removeAttribute(prop) : container.setAttribute(prop, value);
 };
 
 export type RenderNode = (node: JSXElement, container: HostElement) => void;
@@ -67,15 +71,17 @@ function renderFragmentNode(node: JSXElement, container: HostElement) {
 function renderReactiveNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
-  const observed = children[0] as Ref;
+  const observed = children[0] as Ref<InnerNode>;
+  const data = observed.value;
 
-  renderInnerNode(unRef(observed), container);
+  // TODO: diff inner node if reactive value is a JSX element
+  renderInnerNode(data, container);
 }
 
 function renderDerivedNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
-  const derived = (children[0] as Function)();
+  const derived: InnerNode = (children[0] as Function)();
 
   renderInnerNode(derived, container);
 }
@@ -86,11 +92,11 @@ function renderComponentNode(node: JSXElement, container: HostElement) {
   const setup = type as Component;
 
   // TODO: activate reactive context to collect reactive effect during setup stage
-  const creator = untrack(() => setup({ ...props, children }));
+  const renderResult = untrack(() => setup({ ...props, children }));
 
   // TODO: setup component
 
-  renderInnerNode(creator, container);
+  renderInnerNode(renderResult, container);
   // TODO: deactivate reactive context
 }
 

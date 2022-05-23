@@ -1,5 +1,31 @@
-import { effect, unRef } from "../reactivity";
+import { effect, unRef, proxyRef, UnwrapNestedRefs, Ref } from "../index";
 import { isArray, isNull, isObject, isString } from "../shared";
+import { HostElement, setBaseProp } from "./renderer";
+
+export type PropPluginOptions<T, V> = {
+  key: RegExp | string;
+  patch: (key: string, value: UnwrapNestedRefs<T>, element: V) => void;
+};
+export type PropPlugin<T, V> = (propKey: string, propValue: T, element: V) => boolean;
+
+export function createPropPlugin<T, V>(
+  options: PropPluginOptions<T, V>
+): PropPlugin<T, V> {
+  const { key, patch } = options;
+
+  return (propKey: string, propValue: T, element: V) => {
+    // check if the prop key matches the key provided by the plugin
+    const matched = isString(key) ? propKey === key : (key as RegExp).test(propKey);
+    if (!matched) return false;
+
+    const proxyValue = (
+      isObject(propValue) ? proxyRef(propValue as unknown as object) : propValue
+    ) as UnwrapNestedRefs<T>;
+
+    patch(propKey, proxyValue, element);
+    return true;
+  };
+}
 
 export function setProps<T extends HTMLElement>(props: object, el: T) {
   for (let key in props) {
@@ -7,30 +33,52 @@ export function setProps<T extends HTMLElement>(props: object, el: T) {
   }
 }
 
+const stylePropPlugin = createPropPlugin<object | string, HostElement>({
+  key: "style",
+  patch(key, value, el) {
+    if (isString(value)) {
+      el.style.cssText = value as string;
+    } else if (isObject(value)) {
+      Object.entries(value).forEach(([key, value]) => el.style.setProperty(key, value));
+    }
+  },
+});
+
+const classPropPlugin = createPropPlugin<
+  string | any[] | Record<string, boolean>,
+  HostElement
+>({
+  key: "class",
+  patch(key, value, el) {
+    let className: string | undefined;
+    if (isString(value)) {
+      className = value as string;
+    } else if (isArray(value)) {
+      className = value.filter((className) => !!className).join(" ");
+    } else if (isObject(value)) {
+      className = Object.entries(value)
+        .map(([className, active]) => (active ? className : undefined))
+        .filter((className) => !!className)
+        .join(" ");
+    }
+    setBaseProp(el, key, className ? className : undefined);
+  },
+});
+
+const listenerPropPlugin = createPropPlugin<(event: Event) => void, HostElement>({
+  key: /^on[A-Z]/,
+  patch(key, value, el) {
+    const eventName = key.slice(2).toLowerCase();
+    el.addEventListener(eventName, value);
+  },
+});
+
+const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin];
+
 export function setProp<T extends HTMLElement>(key: string, value: any, el: T) {
-  switch (key) {
-    case "class":
-      if (isString(value)) return effect(() => (el.className = unRef(value)));
-      if (isArray(value)) {
-        return value.forEach(
-          (className) => !isNull(unRef(className)) && el.classList.add(unRef(className))
-        );
-      }
-      if (isObject(value)) {
-        return Object.entries(value).forEach(([className, active]: [string, any]) =>
-          effect(() =>
-            unRef(active) ? el.classList.add(className) : el.classList.remove(className)
-          )
-        );
-      }
-    case "style":
-      if (isString(value)) return (el.style.cssText = value);
-      if (isObject(value)) {
-        return Object.entries(value).forEach(([key, value]: [string, any]) =>
-          effect(() => el.style.setProperty(key, unRef(value)))
-        );
-      }
-    default:
-      effect(() => el.setAttribute(key, value));
+  // use regex to match property name that needs customized behavior
+  for (let plugin of plugins) {
+    if (plugin(key, value, el)) return;
   }
+  setBaseProp(el, key, unRef(value));
 }

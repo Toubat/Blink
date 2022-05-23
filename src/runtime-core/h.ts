@@ -1,4 +1,4 @@
-import { computed } from "../reactivity";
+import { computed } from "../index";
 import { createJSXElement } from "./jsx-element";
 
 export const h = createJSXElement;
