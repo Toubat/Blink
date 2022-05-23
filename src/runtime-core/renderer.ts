@@ -1,55 +1,86 @@
-import { reaction } from "mobx";
-import { isRef, unRef, untrack } from "../reactivity";
-import { isFunction, EMPTY_OBJ, warn, isPrimitive, evalNestedFn } from "../shared";
+import { isRef, Ref, unRef, untrack } from "../reactivity";
+import { isString, isFunction, EMPTY_OBJ, isNumber, warn } from "../shared";
 import { Component } from "./component";
 import { setProps } from "./props";
 import {
   createJSXElement,
   isJSXElement,
-  VNodeChildren,
+  NodeChildren,
   JSXElement,
+  InnerNode,
   Text,
-  VNodeChild,
   Fragment,
-} from "./vnode";
+  Reactive,
+  Derived,
+} from "./jsx-element";
 
 export type HostElement = HTMLElement;
+export type HostText = Text;
 const createElement = document.createElement.bind(document);
+const createTextElement = document.createTextNode.bind(document);
+const insertElement = (
+  container: HostElement,
+  el: HostElement | HostText,
+  anchor?: HostElement
+) => {
+  container.insertBefore(el, anchor || null);
+};
+
+export type RenderNode = (node: JSXElement, container: HostElement) => void;
 
 export function renderRoot(root: JSXElement, container: HostElement) {
-  // if (!isJSXElement(root)) {
-  //   warn(`Root component should be a JSX element, but got ${root} instead.`);
-  //   return;
-  // }
-  initVNode(root, container);
+  if (!isJSXElement(root)) {
+    return warn(`Root component should be a JSX element, but got ${root} instead.`);
+  }
+  initNode(root, container);
 }
 
-function initVNode(node: JSXElement, container: HostElement) {
+function initNode(node: JSXElement, container: HostElement) {
   // { type, props, children } = vnode
   console.log(node.children);
 
-  const renderVNode = getVNodeRenderer(node);
-  renderVNode(node, container);
+  const renderNode = getNodeRenderer(node);
+  renderNode(node, container);
 }
 
-function getVNodeRenderer(node: JSXElement) {
+function getNodeRenderer(node: JSXElement): RenderNode {
   switch (node.type) {
     case Fragment:
-      return renderFragmentVNode;
+      return renderFragmentNode;
     case Text:
-      return renderTextVNode;
+      return renderTextNode;
+    case Reactive:
+      return renderReactiveNode;
+    case Derived:
+      return renderDerivedNode;
     default:
-      return isFunction(node.type) ? renderComponentVNode : renderElementVNode;
+      return isFunction(node.type) ? renderComponentNode : renderElementNode;
   }
 }
 
-export function renderFragmentVNode(node: JSXElement, container: HostElement) {
+function renderFragmentNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
   renderChildren(children, container);
 }
 
-export function renderComponentVNode(node: JSXElement, container: HostElement) {
+function renderReactiveNode(node: JSXElement, container: HostElement) {
+  const { children } = node;
+
+  const observed = children[0] as Ref;
+
+  renderInnerNode(unRef(observed), container);
+}
+
+function renderDerivedNode(node: JSXElement, container: HostElement) {
+  const { children } = node;
+
+  const derived = (children[0] as Function)();
+
+  renderInnerNode(derived, container);
+}
+
+function renderComponentNode(node: JSXElement, container: HostElement) {
   const { type, props, children } = node;
 
   const setup = type as Component;
@@ -59,11 +90,11 @@ export function renderComponentVNode(node: JSXElement, container: HostElement) {
 
   // TODO: setup component
 
-  renderChild(creator, container);
+  renderInnerNode(creator, container);
   // TODO: deactivate reactive context
 }
 
-export function renderElementVNode(node: JSXElement, container: HostElement) {
+function renderElementNode(node: JSXElement, container: HostElement) {
   const { type, props, children } = node;
 
   const el = createElement(type as string);
@@ -71,37 +102,45 @@ export function renderElementVNode(node: JSXElement, container: HostElement) {
   setProps(props, el);
   renderChildren(children, el);
 
-  container.appendChild(el);
+  insertElement(container, el);
 }
 
-function renderTextVNode(node: JSXElement, container: HostElement) {
+function renderTextNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
   const text = children[0] as string;
-  container.appendChild(document.createTextNode(text));
+  const el = createTextElement(text);
+
+  insertElement(container, el);
 }
 
-function renderChildren(children: VNodeChildren, container: HostElement) {
+function renderChildren(children: NodeChildren, container: HostElement) {
   children.forEach((child) => {
-    renderChild(child, container);
+    renderInnerNode(child, container);
   });
 }
 
-function renderChild(child: VNodeChild, container: HostElement): void {
+function renderInnerNode(child: InnerNode, container: HostElement): void {
   if (isJSXElement(child)) {
-    return initVNode(child as JSXElement, container);
+    return initNode(child as JSXElement, container);
   }
 
   if (isFunction(child)) {
-    return renderChild((child as Function)(), container);
+    const derivedElement = createJSXElement(Derived, EMPTY_OBJ, child);
+    return initNode(derivedElement, container);
   }
 
   if (isRef(child)) {
-    return renderChild(unRef(child), container);
+    const reactiveElement = createJSXElement(Reactive, EMPTY_OBJ, child);
+    return initNode(reactiveElement, container);
   }
 
-  const textElement = createJSXElement(Text, EMPTY_OBJ, child);
-  return initVNode(textElement, container);
+  if (isString(child) || isNumber(child)) {
+    const textElement = createJSXElement(Text, EMPTY_OBJ, child);
+    return initNode(textElement, container);
+  }
+
+  warn(`"${typeof child}" is not a valid JSX element.`);
 }
 
 /**

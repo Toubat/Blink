@@ -2,12 +2,18 @@ export const NOOP = () => {};
 
 export const EMPTY_OBJ = {};
 
+export const EMPTY_ARRAY = [];
+
 export const isNull = (val: unknown) => {
   return val === null || val === undefined;
 };
 
 export const isString = (val: unknown) => {
   return val !== null && typeof val === "string";
+};
+
+export const isNumber = (val: unknown) => {
+  return val !== null && typeof val === "number";
 };
 
 export const isArray = Array.isArray;
@@ -50,5 +56,5 @@ export const evalNestedFn = (value: any) => {
 };
 
 export const warn = (msg: string) => {
-  console.warn(`[Blink warn]: ${msg}`);
+  console.warn(`[blink]: ${msg}`);
 };

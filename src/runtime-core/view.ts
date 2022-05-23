@@ -1,4 +1,4 @@
-import { JSXElement } from "./vnode";
+import { JSXElement } from "./jsx-element";
 import { renderRoot } from "./renderer";
 
 export function createView(rootComponent: JSXElement) {

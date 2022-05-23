@@ -1,5 +1,5 @@
 import { computed } from "../reactivity";
-import { createJSXElement } from "./vnode";
+import { createJSXElement } from "./jsx-element";
 
 export const h = createJSXElement;
 

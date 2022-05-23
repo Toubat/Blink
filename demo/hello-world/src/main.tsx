@@ -38,6 +38,7 @@ const App: FC<AppProps> = ({ a: data, children }) => {
         <li class={["blue", r(() => (a.value === 133 ? "bg-orange" : null))]}>
           array class
         </li>
+        {Symbol("1234")}
         {() => {
           return r(() =>
             data.value === 133 ? (
@@ -66,6 +67,7 @@ const JSX = () => (
         <li>child {a.value}</li>
       </ol>
     </App>
+    {() => () => () => () => () => () => c}
   </div>
 );
 
