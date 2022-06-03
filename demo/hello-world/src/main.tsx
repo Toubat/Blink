@@ -35,9 +35,7 @@ const App: FC<AppProps> = ({ a: data, children }) => {
         >
           object class
         </li>
-        <li class={["blue", r(() => (a.value % 2 === 0 ? "bg-orange" : null))]}>
-          array class
-        </li>
+        <li class={["blue", r(() => (a.value % 2 === 0 ? "bg-orange" : null))]}>array class</li>
         <button onClick={() => a.value++}>Click</button>
         {() => {
           return r(() =>

@@ -7,12 +7,13 @@ import {
   isJSXElement,
   NodeChildren,
   JSXElement,
-  InnerNode,
+  Child,
   Text,
   Fragment,
   Reactive,
   Derived,
 } from "./jsx-element";
+import { reaction } from "mobx";
 
 // TODO: refactor these into a separate directory
 export type HostElement = HTMLElement;
@@ -71,19 +72,34 @@ function renderFragmentNode(node: JSXElement, container: HostElement) {
 function renderReactiveNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
-  const observed = children[0] as Ref<InnerNode>;
-  const data = observed.value;
+  const observed = children[0] as Ref<Child>;
 
-  // TODO: diff inner node if reactive value is a JSX element
-  renderInnerNode(data, container);
+  const context = null;
+  reaction(
+    () => {
+      // TODO: cleanup old effects stored in previous reactive context
+      // ...
+      // TODO: activate reactive context to collect reactive effect during setup stage
+      // ...
+      return observed.value;
+    },
+    (currValue, prevValue) => {
+      if (currValue === prevValue) return;
+
+      const renderResult = untrack(() => data);
+
+      // TODO: diff inner node if reactive value is a JSX element
+      renderChild(data, container);
+    }
+  );
 }
 
 function renderDerivedNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
-  const derived: InnerNode = (children[0] as Function)();
+  const derived: Child = (children[0] as Function)();
 
-  renderInnerNode(derived, container);
+  renderChild(derived, container);
 }
 
 function renderComponentNode(node: JSXElement, container: HostElement) {
@@ -96,7 +112,7 @@ function renderComponentNode(node: JSXElement, container: HostElement) {
 
   // TODO: setup component
 
-  renderInnerNode(renderResult, container);
+  renderChild(renderResult, container);
   // TODO: deactivate reactive context
 }
 
@@ -122,11 +138,11 @@ function renderTextNode(node: JSXElement, container: HostElement) {
 
 function renderChildren(children: NodeChildren, container: HostElement) {
   children.forEach((child) => {
-    renderInnerNode(child, container);
+    renderChild(child, container);
   });
 }
 
-function renderInnerNode(child: InnerNode, container: HostElement): void {
+function renderChild(child: Child, container: HostElement): void {
   if (isJSXElement(child)) {
     return initNode(child as JSXElement, container);
   }

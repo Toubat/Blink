@@ -21,9 +21,9 @@ export type NodeType =
 
 export type NodeProps = object;
 
-export type InnerNode = string | JSXElement | Ref | Function;
+export type Child = string | JSXElement | Ref | Function;
 
-export type NodeChildren = InnerNode[];
+export type NodeChildren = Child[];
 
 export interface JSXElement {
   type: NodeType;

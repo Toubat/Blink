@@ -4,14 +4,12 @@ import { HostElement, setBaseProp } from "./renderer";
 
 export type PropPluginOptions<T, V> = {
   key: RegExp | string;
-  patch: (key: string, value: UnwrapNestedRefs<T>, element: V) => void;
+  setup: (key: string, value: UnwrapNestedRefs<T>, element: V) => void;
 };
-export type PropPlugin<T, V> = (propKey: string, propValue: T, element: V) => boolean;
+export type BlinkPropPlugin<T, V> = (propKey: string, propValue: T, element: V) => boolean;
 
-export function createPropPlugin<T, V>(
-  options: PropPluginOptions<T, V>
-): PropPlugin<T, V> {
-  const { key, patch } = options;
+export function createPropPlugin<T, V>(options: PropPluginOptions<T, V>): BlinkPropPlugin<T, V> {
+  const { key, setup: patch } = options;
 
   return (propKey: string, propValue: T, element: V) => {
     // check if the prop key matches the key provided by the plugin
@@ -35,7 +33,7 @@ export function setProps<T extends HTMLElement>(props: object, el: T) {
 
 const stylePropPlugin = createPropPlugin<object | string, HostElement>({
   key: "style",
-  patch(key, value, el) {
+  setup(key, value, el) {
     if (isString(value)) {
       el.style.cssText = value as string;
     } else if (isObject(value)) {
@@ -44,13 +42,11 @@ const stylePropPlugin = createPropPlugin<object | string, HostElement>({
   },
 });
 
-const classPropPlugin = createPropPlugin<
-  string | any[] | Record<string, boolean>,
-  HostElement
->({
+const classPropPlugin = createPropPlugin<string | any[] | Record<string, boolean>, HostElement>({
   key: "class",
-  patch(key, value, el) {
+  setup(key, value, el) {
     let className: string | undefined;
+
     if (isString(value)) {
       className = value as string;
     } else if (isArray(value)) {
@@ -67,13 +63,21 @@ const classPropPlugin = createPropPlugin<
 
 const listenerPropPlugin = createPropPlugin<(event: Event) => void, HostElement>({
   key: /^on[A-Z]/,
-  patch(key, value, el) {
+  setup(key, value, el) {
     const eventName = key.slice(2).toLowerCase();
     el.addEventListener(eventName, value);
   },
 });
 
-const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin];
+const customPropPlugin = createPropPlugin<any, HostElement>({
+  key: /^(use):[a-z]/,
+  setup(key, value, el) {
+    const [, customKey] = key.split(":");
+    setBaseProp(el, customKey, value);
+  },
+});
+
+const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin, customPropPlugin];
 
 export function setProp<T extends HTMLElement>(key: string, value: any, el: T) {
   // use regex to match property name that needs customized behavior
