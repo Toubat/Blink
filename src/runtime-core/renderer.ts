@@ -42,7 +42,6 @@ export function renderRoot(root: JSXElement, container: HostElement) {
 
 function initNode(node: JSXElement, container: HostElement) {
   // { type, props, children } = vnode
-  console.log(node.children);
 
   const renderNode = getNodeRenderer(node);
   renderNode(node, container);
@@ -86,20 +85,12 @@ function renderReactiveNode(node: JSXElement, container: HostElement) {
     (currValue, prevValue) => {
       if (currValue === prevValue) return;
 
-      const renderResult = untrack(() => data);
+      // const renderResult = untrack(() => data);
 
       // TODO: diff inner node if reactive value is a JSX element
-      renderChild(data, container);
+      // renderChild(data, container);
     }
   );
-}
-
-function renderDerivedNode(node: JSXElement, container: HostElement) {
-  const { children } = node;
-
-  const derived: Child = (children[0] as Function)();
-
-  renderChild(derived, container);
 }
 
 function renderComponentNode(node: JSXElement, container: HostElement) {
@@ -114,6 +105,17 @@ function renderComponentNode(node: JSXElement, container: HostElement) {
 
   renderChild(renderResult, container);
   // TODO: deactivate reactive context
+}
+
+function renderDerivedNode(node: JSXElement, container: HostElement) {
+  const { children } = node;
+
+  // TODO: should track dependency of derived element
+  const derived = (children[0] as Function)() as string;
+
+  const el = createTextElement(derived);
+
+  insertElement(container, el);
 }
 
 function renderElementNode(node: JSXElement, container: HostElement) {
@@ -161,6 +163,9 @@ function renderChild(child: Child, container: HostElement): void {
     const textElement = createJSXElement(Text, EMPTY_OBJ, child);
     return initNode(textElement, container);
   }
+
+  // possiblly empty JSX expression
+  if (isNull(child)) return;
 
   warn(`"${typeof child}" is not a valid JSX element.`);
 }

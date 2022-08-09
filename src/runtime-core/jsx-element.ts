@@ -43,7 +43,7 @@ export function createJSXElement(
     children: children || EMPTY_ARRAY,
     [JSX_ELEMENT]: true,
   };
-
+  console.log(node);
   return node;
 }
 

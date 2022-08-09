@@ -1,5 +1,5 @@
 import { effect, unRef, proxyRef, UnwrapNestedRefs, Ref } from "../index";
-import { isArray, isNull, isObject, isString } from "../shared";
+import { isArray, isNull, isObject, isString, isFunction } from "../shared";
 import { HostElement, setBaseProp } from "./renderer";
 
 export type PropPluginOptions<T, V> = {
@@ -80,6 +80,9 @@ const customPropPlugin = createPropPlugin<any, HostElement>({
 const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin, customPropPlugin];
 
 export function setProp<T extends HTMLElement>(key: string, value: any, el: T) {
+  if (isFunction(value)) {
+    value = value();
+  }
   // use regex to match property name that needs customized behavior
   for (let plugin of plugins) {
     if (plugin(key, value, el)) return;
