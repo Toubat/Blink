@@ -1,10 +1,10 @@
-import { effect, unRef, proxyRef, UnwrapNestedRefs, Ref } from "../index";
+import { effect, unRef, proxyRef, UnwrapNestedRefs, Ref, isRef } from "../index";
 import { isArray, isNull, isObject, isString, isFunction } from "../shared";
 import { HostElement, setBaseProp } from "./renderer";
 
 export type PropPluginOptions<T, V> = {
   key: RegExp | string;
-  setup: (key: string, value: UnwrapNestedRefs<T>, element: V) => void;
+  setup: (key: string, value: T, element: V) => void;
 };
 export type BlinkPropPlugin<T, V> = (propKey: string, propValue: T, element: V) => boolean;
 
@@ -16,11 +16,7 @@ export function createPropPlugin<T, V>(options: PropPluginOptions<T, V>): BlinkP
     const matched = isString(key) ? propKey === key : (key as RegExp).test(propKey);
     if (!matched) return false;
 
-    const proxyValue = (
-      isObject(propValue) ? proxyRef(propValue as unknown as object) : propValue
-    ) as UnwrapNestedRefs<T>;
-
-    patch(propKey, proxyValue, element);
+    patch(propKey, propValue, element);
     return true;
   };
 }
@@ -37,7 +33,9 @@ const stylePropPlugin = createPropPlugin<object | string, HostElement>({
     if (isString(value)) {
       el.style.cssText = value as string;
     } else if (isObject(value)) {
-      Object.entries(value).forEach(([key, value]) => el.style.setProperty(key, value));
+      Object.entries(value).forEach(([key, value]) =>
+        el.style.setProperty(key, isString(value) ? value : `${value}px`)
+      );
     }
   },
 });
@@ -80,8 +78,8 @@ const customPropPlugin = createPropPlugin<any, HostElement>({
 const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin, customPropPlugin];
 
 export function setProp<T extends HTMLElement>(key: string, value: any, el: T) {
-  if (isFunction(value)) {
-    value = value();
+  if (isRef(value)) {
+    value = value.value;
   }
   // use regex to match property name that needs customized behavior
   for (let plugin of plugins) {

@@ -68,31 +68,6 @@ function renderFragmentNode(node: JSXElement, container: HostElement) {
   renderChildren(children, container);
 }
 
-function renderReactiveNode(node: JSXElement, container: HostElement) {
-  const { children } = node;
-
-  const observed = children[0] as Ref<Child>;
-
-  const context = null;
-  reaction(
-    () => {
-      // TODO: cleanup old effects stored in previous reactive context
-      // ...
-      // TODO: activate reactive context to collect reactive effect during setup stage
-      // ...
-      return observed.value;
-    },
-    (currValue, prevValue) => {
-      if (currValue === prevValue) return;
-
-      // const renderResult = untrack(() => data);
-
-      // TODO: diff inner node if reactive value is a JSX element
-      // renderChild(data, container);
-    }
-  );
-}
-
 function renderComponentNode(node: JSXElement, container: HostElement) {
   const { type, props, children } = node;
 
@@ -102,6 +77,24 @@ function renderComponentNode(node: JSXElement, container: HostElement) {
   const renderResult = untrack(() => setup({ ...props, children }));
 
   // TODO: setup component
+  const context = null;
+  // reaction(
+  //   () => {
+  //     // TODO: cleanup old effects stored in previous reactive context
+  //     // ...
+  //     // TODO: activate reactive context to collect reactive effect during setup stage
+  //     // ...
+  //     return observed.value;
+  //   },
+  //   (currValue, prevValue) => {
+  //     if (currValue === prevValue) return;
+
+  //     // const renderResult = untrack(() => data);
+
+  //     // TODO: diff inner node if reactive value is a JSX element
+  //     // renderChild(data, container);
+  //   }
+  // );
 
   renderChild(renderResult, container);
   // TODO: deactivate reactive context
@@ -112,6 +105,17 @@ function renderDerivedNode(node: JSXElement, container: HostElement) {
 
   // TODO: should track dependency of derived element
   const derived = (children[0] as Function)() as string;
+
+  const el = createTextElement(derived);
+
+  insertElement(container, el);
+}
+
+function renderReactiveNode(node: JSXElement, container: HostElement) {
+  const { children } = node;
+
+  // TODO: should track dependency of derived element
+  const derived = (children[0] as Ref).value as string;
 
   const el = createTextElement(derived);
 
@@ -149,10 +153,10 @@ function renderChild(child: Child, container: HostElement): void {
     return initNode(child as JSXElement, container);
   }
 
-  if (isFunction(child)) {
-    const derivedElement = createJSXElement(Derived, EMPTY_OBJ, child);
-    return initNode(derivedElement, container);
-  }
+  // if (isFunction(child)) {
+  //   const derivedElement = createJSXElement(Derived, EMPTY_OBJ, child);
+  //   return initNode(derivedElement, container);
+  // }
 
   if (isRef(child)) {
     const reactiveElement = createJSXElement(Reactive, EMPTY_OBJ, child);
