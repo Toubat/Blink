@@ -9,20 +9,26 @@ export function blink() {
     visitor: {
       JSXAttribute(path) {
         if (t.isStringLiteral(path.node.value)) {
-          path.node.value = t.jsxExpressionContainer(path.node.value);
+          path.get("value").replaceWith(t.jsxExpressionContainer(path.node.value));
         }
       },
       JSXExpressionContainer(path) {
-        if (path.node.expression.type === "JSXEmptyExpression") {
-          path.node.expression = t.identifier("undefined");
+        if (t.isJSXEmptyExpression(path.node.expression)) {
+          path.remove();
         } else {
-          path.node.expression = t.callExpression(t.identifier("Blink.r"), [
-            t.arrowFunctionExpression([], path.node.expression, false),
-          ]);
+          path
+            .get("expression")
+            .replaceWith(
+              t.callExpression(t.identifier("Blink.r"), [
+                t.arrowFunctionExpression([], path.node.expression, false),
+              ])
+            );
         }
       },
       JSXSpreadAttribute(path) {
-        path.node.argument = t.callExpression(t.identifier("Blink.rs"), [path.node.argument]);
+        path
+          .get("argument")
+          .replaceWith(t.callExpression(t.identifier("Blink.rs"), [path.node.argument]));
       },
     },
   };

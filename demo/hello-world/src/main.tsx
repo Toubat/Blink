@@ -66,7 +66,7 @@ const JSX = () => {
       <App a={a}>
         <ol>
           <li>child {a.value}</li>
-          <li>child {a.value}</li>
+          {/* <li>child {a.value}</li> */}
         </ol>
       </App>
       <button onClick={() => a.value++}>Click a</button>
