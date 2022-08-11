@@ -2,18 +2,23 @@ import { makeAutoObservable } from "mobx";
 import { hasChanged, isObject } from "../shared";
 import { CollectionTypes } from "./collectionHandlers";
 import { untrack } from "./effect";
-import { reactive, ReactiveFlag, toRaw } from "./reactive";
+import { reactive, ReactiveFlag, readonly, toRaw } from "./reactive";
 
 export type Ref<T = any> = {
   value: T;
   [ReactiveFlag.REF]: true;
 };
 
+/**
+ * Convert object values into computed refs that capture object value.
+ */
+export type ToRefs<T extends object> = {
+  [key in keyof T]: Ref<T[key]>;
+};
+
 type BaseTypes = string | number | boolean;
 
-export type UnwrapRef<T> = T extends Ref<infer V>
-  ? UnwrapRefSimple<V>
-  : UnwrapRefSimple<T>;
+export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRefSimple<V> : UnwrapRefSimple<T>;
 export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>;
 export type UnwrapRefSimple<T> = T extends Function | CollectionTypes | BaseTypes | Ref
   ? T
@@ -76,6 +81,16 @@ export function shallowRef(value) {
   if (isRef(value)) return value;
 
   return new RefImpl(value, true);
+}
+
+export function readonlyRef<T>(value: T): Ref<UnwrapRef<T>>;
+export function readonlyRef(value) {
+  if (isRef(value)) return readonly(value);
+
+  return {
+    value,
+    [ReactiveFlag.REF]: true,
+  };
 }
 
 export function proxyRef<T extends object>(target: T): UnwrapNestedRefs<T> {
