@@ -1,19 +1,20 @@
-import { createView, effect, Ref, ref, r } from "../../../dist";
-import { JSXElement } from "../../../dist/runtime-core/vnode";
+import { createView, Ref, ref, reactive, ToRefs, JSXElement } from "../../../dist";
 
 const app = document.querySelector<HTMLDivElement>("#app") as HTMLDivElement;
 
-const a = ref(111);
-
-export type FC<T extends object> = (props: T & { children?: any }) => JSXElement;
+export type FC<T extends object> = (props: ToRefs<T> & { children?: any }) => JSXElement;
 
 export interface AppProps {
-  a: Ref<number>;
+  a: number;
 }
 
-const c = ref("green");
+const App: FC<AppProps> = ({ a, children }) => {
+  const c = ref("green");
 
-const App: FC<AppProps> = ({ a: data, children }) => {
+  setTimeout(() => {
+    c.value = "blue";
+  }, 1000);
+
   return (
     <>
       <p
@@ -30,9 +31,9 @@ const App: FC<AppProps> = ({ a: data, children }) => {
       >
         App obj style
       </p>
-      Hello {data.value}
+      Hello {a.value}
       <ul>
-        <li>{data.value}</li>
+        <li>{a.value}</li>
         <li
           class={{
             blue: a.value % 2 === 0,
@@ -42,36 +43,44 @@ const App: FC<AppProps> = ({ a: data, children }) => {
           object class
         </li>
         <li class={["blue", a.value % 2 === 0 ? "bg-orange" : null]}>array class</li>
-        <button onClick={() => a.value++}>Click</button>
+        <button onClick={() => a.value++}>Click a</button>
       </ul>
       {...children}
     </>
   );
 };
 
-const JSX = () => (
-  <div>
-    <p style="color: green">ASDASDASDASDAD</p>
-    {"JSX element"}
-    {1 + 1}
-    <App a={a}>
-      <ol>
-        <li>child {a.value}</li>
-      </ol>
-      <ol>
-        <li>child {a.value}</li>
-      </ol>
-    </App>
-  </div>
-);
+const JSX = () => {
+  const a = ref(111);
+  const props = reactive({
+    class: "red",
+    style: {
+      padding: 5,
+    },
+  });
+
+  return (
+    <div>
+      <p style={{ color: "green" }}>ASDASDASDASDAD</p>
+      <button style={{ color: "red" }}>Click</button>
+      <App a={a}>
+        <ol>
+          <li>child {a.value}</li>
+          <li>child {a.value}</li>
+        </ol>
+      </App>
+      <button onClick={() => a.value++}>Click a</button>
+      <p {...props}>spread props</p>
+      <p class="red">String Literal Attribute</p>
+      <button onClick={() => props.style.padding++}>+</button>
+      <button onClick={() => props.style.padding--}>-</button>
+    </div>
+  );
+};
 
 const view = createView(<JSX />);
 
 view.render(app);
-
-setTimeout(() => {
-  c.value = "blue";
-}, 1000);
 
 const b = () => {
   console.log("b");

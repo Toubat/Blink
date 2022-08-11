@@ -47,8 +47,7 @@ export const bind = <T extends object>(target: T, value) => {
   return isFunction(value) ? value.bind(target) : value;
 };
 
-export const hasChanged = (value: any, oldValue: any): boolean =>
-  !Object.is(value, oldValue);
+export const hasChanged = (value: any, oldValue: any): boolean => !Object.is(value, oldValue);
 
 export const evalNestedFn = (value: any) => {
   if (isFunction(value)) return evalNestedFn(value());
@@ -57,4 +56,8 @@ export const evalNestedFn = (value: any) => {
 
 export const warn = (msg: string) => {
   console.warn(`[blink]: ${msg}`);
+};
+
+export const error = (msg: string) => {
+  console.error(`[blink]: ${msg}`);
 };
