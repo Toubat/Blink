@@ -1,7 +1,7 @@
 import { Ref } from "../index";
 import { EMPTY_OBJ, EMPTY_ARRAY } from "../shared";
 import { Null } from "../shared/types";
-import { Component } from "./component";
+import { FC } from "./component";
 
 const JSX_ELEMENT = Symbol("jsx-element");
 
@@ -13,7 +13,7 @@ export const Derived = Symbol("derived");
 
 export type NodeType =
   | string
-  | Component
+  | FC
   | typeof Text
   | typeof Fragment
   | typeof Reactive

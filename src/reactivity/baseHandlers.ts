@@ -1,7 +1,7 @@
-import { bind, warn } from '../shared';
-import { untrack } from './effect';
-import { createReactiveProxy, ReactiveFlag } from './reactive';
-import { isRef, unRef } from './ref';
+import { bind, warn } from "../shared";
+import { untrack } from "./effect";
+import { createReactiveProxy, ReactiveFlag } from "./reactive";
+import { isRef, unRef } from "./ref";
 
 function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean) {
   return function get(target: T, key: string | symbol, receiver: object) {
@@ -23,6 +23,7 @@ function createGetter<T extends object>(isShallow: boolean, isReadonly: boolean)
 
 function createSetter<T extends object>(isShallow: boolean, isReadonly: boolean) {
   return function set(target: T, key: string | symbol, value: unknown, receiver: object) {
+    // avoid setting property value on a readonly object
     if (isReadonly) {
       warn(`Cannot set key "${String(key)}" on readonly object`);
       return true;

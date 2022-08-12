@@ -1,6 +1,5 @@
-import { NOOP, isObject, warn } from "../shared";
+import { NOOP, isObject } from "../shared";
 import { computed as _computed } from "mobx";
-import { ReactiveFlag } from "./reactive";
 import { Ref } from "./ref";
 import { untrack } from "./effect";
 

@@ -1,8 +1,6 @@
-import { createView, Ref, ref, reactive, ToRefs, JSXElement } from "../../../dist";
+import { createView, ref, reactive, FC } from "../../../dist";
 
 const app = document.querySelector<HTMLDivElement>("#app") as HTMLDivElement;
-
-export type FC<T extends object> = (props: ToRefs<T> & { children?: any }) => JSXElement;
 
 export interface AppProps {
   a: number;
@@ -66,10 +64,16 @@ const JSX = () => {
       <App a={a}>
         <ol>
           <li>child {a.value}</li>
-          {/* <li>child {a.value}</li> */}
+          <li>child {a.value}</li>
         </ol>
       </App>
-      <button onClick={() => a.value++}>Click a</button>
+      <button
+        onClick={() => {
+          a.value++;
+        }}
+      >
+        Click a
+      </button>
       <p {...props}>spread props</p>
       <p class="red">String Literal Attribute</p>
       <button onClick={() => props.style.padding++}>+</button>

@@ -1,3 +1,4 @@
+import { ToRefs } from "..";
 import { JSXElement } from "./jsx-element";
 
-export type Component = (props: object) => JSXElement;
+export type FC<T extends object = any> = (props: ToRefs<T> & { children?: any }) => JSXElement;

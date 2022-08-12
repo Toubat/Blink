@@ -1,5 +1,5 @@
 import { makeAutoObservable } from "mobx";
-import { hasChanged, isObject } from "../shared";
+import { hasChanged, isObject, warn } from "../shared";
 import { CollectionTypes } from "./collectionHandlers";
 import { untrack } from "./effect";
 import { reactive, ReactiveFlag, readonly, toRaw } from "./reactive";
@@ -13,14 +13,16 @@ export type Ref<T = any> = {
  * Convert object values into computed refs that capture object value.
  */
 export type ToRefs<T extends object> = {
-  [key in keyof T]: Ref<T[key]>;
+  [key in keyof T]: Ref<UnwrapRef<T[key]>>;
 };
 
 type BaseTypes = string | number | boolean;
 
-export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRefSimple<V> : UnwrapRefSimple<T>;
-export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRefSimple<T>;
-export type UnwrapRefSimple<T> = T extends Function | CollectionTypes | BaseTypes | Ref
+export type UnwrapRef<T> = T extends Ref<infer V> ? UnwrapRef<V> : UnwrapRefSimple<T>;
+export type UnwrapNestedRefs<T> = T extends Ref<infer V> ? Ref<UnwrapRef<V>> : UnwrapRefSimple<T>;
+export type UnwrapRefSimple<T> = T extends Ref
+  ? never
+  : T extends Function | CollectionTypes | BaseTypes
   ? T
   : T extends Array<any>
   ? { [K in keyof T]: UnwrapRefSimple<T[K]> }
@@ -83,17 +85,29 @@ export function shallowRef(value) {
   return new RefImpl(value, true);
 }
 
-export function readonlyRef<T>(value: T): Ref<UnwrapRef<T>>;
-export function readonlyRef(value) {
-  if (isRef(value)) return readonly(value);
+export function readonlyRef<T>(target: T): T extends Ref ? T : Ref<T>;
+export function readonlyRef(target) {
+  if (isRef(target)) return readonly(target);
 
-  return {
-    value,
-    [ReactiveFlag.REF]: true,
-  };
+  return new Proxy(
+    {
+      value: target,
+      [ReactiveFlag.REF]: true,
+    },
+    {
+      get(target, key) {
+        return Reflect.get(target, key);
+      },
+      set(target, key, value) {
+        warn(`Cannot set key "${String(key)}" on readonly object`);
+        return true;
+      },
+    }
+  );
 }
 
-export function proxyRef<T extends object>(target: T): UnwrapNestedRefs<T> {
+export function proxyRef<T extends object>(target: T): UnwrapNestedRefs<T>;
+export function proxyRef(target) {
   return new Proxy(target, {
     get(target, key) {
       return unRef(Reflect.get(target, key));
@@ -107,5 +121,5 @@ export function proxyRef<T extends object>(target: T): UnwrapNestedRefs<T> {
         return Reflect.set(target, key, value);
       }
     },
-  }) as UnwrapRef<T>;
+  });
 }

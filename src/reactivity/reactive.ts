@@ -1,5 +1,5 @@
 import { isObservable, observable, toJS } from "mobx";
-import { isObject, isPrimitive, toRawType } from "../shared";
+import { isObject, isPrimitive, toRawType, warn } from "../shared";
 import { getBaseHandler } from "./baseHandlers";
 import { CollectionTypes, getCollectionHandlers } from "./collectionHandlers";
 import { isRef, Ref, unRef, UnwrapNestedRefs } from "./ref";
@@ -55,8 +55,7 @@ export function toRaw<T>(target: T, shallow: boolean = false): T {
   // handle chain of readonly & ref
   while (isReadonly(rawTarget) || isRef(rawTarget)) {
     rawTarget = unRef(rawTarget);
-    rawTarget =
-      rawTarget[ReactiveFlag.RAW] !== undefined ? rawTarget[ReactiveFlag.RAW] : rawTarget;
+    rawTarget = rawTarget[ReactiveFlag.RAW] !== undefined ? rawTarget[ReactiveFlag.RAW] : rawTarget;
   }
 
   // unobserve target if it is observable
@@ -86,15 +85,17 @@ export function isShallow(target) {
   return isObject(target) && !!target[ReactiveFlag.SHALLOW];
 }
 
-function createReactiveObject<T extends object>(
-  target: T,
-  shallow: boolean,
-  readonly: boolean
-) {
+function createReactiveObject<T extends object>(target: T, shallow: boolean, readonly: boolean) {
   // avoid calling reactive/readonly() on a readonly object
   // avoid calling reactive() on a reactive object
 
-  if (isReadonly(target) || (isReactive(target) && !readonly)) {
+  if (isReadonly(target)) {
+    warn(`Cannot make object that already has a readonly modifier to be reactive/readonly.`);
+    return target;
+  }
+
+  if (isReactive(target) && !readonly) {
+    warn(`Cannot make object that already has a reactive modifier to be reactive.`);
     return target;
   }
 

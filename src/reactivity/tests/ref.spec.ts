@@ -186,7 +186,7 @@ describe("reactivity/ref", () => {
   });
 
   it("proxyRef should unwrap nested ref", () => {
-    const observed = proxyRef(ref({ foo: 1 }));
+    const observed = proxyRef(ref(ref({ foo: 1 })));
     expect(observed.value.foo).toBe(1);
 
     const observed2 = proxyRef({

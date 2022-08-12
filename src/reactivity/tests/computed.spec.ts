@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { computed } from "../computed";
 import { reactive, ReactiveFlag } from "../reactive";
 import { effect } from "../effect";
-import { isRef } from "../ref";
+import { isRef, ref } from "../ref";
 
 configure({
   enforceActions: "never",
@@ -73,9 +73,7 @@ describe("reactivity/computed", () => {
   it("should compute lazily", () => {
     const observed = reactive({ foo: 2 });
     const spyGetter = vi.fn().mockImplementation(() => observed.foo * observed.foo);
-    const spySetter = vi
-      .fn()
-      .mockImplementation((value) => (observed.foo = Math.sqrt(value)));
+    const spySetter = vi.fn().mockImplementation((value) => (observed.foo = Math.sqrt(value)));
     const square = computed<number>({
       get: spyGetter,
       set: spySetter,
@@ -95,9 +93,7 @@ describe("reactivity/computed", () => {
   it("should only call setter once when new/old values are the same", () => {
     const observed = reactive({ foo: 2 });
     const spyGetter = vi.fn().mockImplementation(() => observed.foo * observed.foo);
-    const spySetter = vi
-      .fn()
-      .mockImplementation((value) => (observed.foo = Math.sqrt(value)));
+    const spySetter = vi.fn().mockImplementation((value) => (observed.foo = Math.sqrt(value)));
     const square = computed<number>({
       get: spyGetter,
       set: spySetter,
@@ -140,5 +136,17 @@ describe("reactivity/computed", () => {
     expect(data.num).to.equal(2);
     data.num = 3;
     expect(observed.foo).to.equal(2);
+  });
+
+  it("nested computed", () => {
+    const val = ref(1);
+    const c1 = computed(() => val.value);
+    const c2 = computed(() => c1.value + 1);
+    const c3 = computed(() => c2.value + 1);
+    const c4 = computed(() => c3.value + 1);
+
+    expect(c4.value).to.equal(4);
+    val.value++;
+    expect(c4.value).to.equal(5);
   });
 });

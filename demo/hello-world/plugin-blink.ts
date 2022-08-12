@@ -1,7 +1,8 @@
 import { types as t } from "@babel/core";
 
 /**
- * Babel plugin that wrap each JSX expression with a function call
+ * Babel plugin that wrap each JSX expression with a ref callback,
+ * and wrap values of each object under JSX spread operator with a ref callback.
  */
 export function blink() {
   return {
