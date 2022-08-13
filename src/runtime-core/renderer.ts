@@ -1,5 +1,5 @@
-import { effect, isRef, Ref, unRef, untrack } from "../reactivity";
-import { isString, isFunction, EMPTY_OBJ, isNumber, warn, isNull } from "../shared";
+import { effect, isReadonly, isRef, proxyRef, readonly, Ref, unRef, untrack } from "../reactivity";
+import { isString, isFunction, EMPTY_OBJ, isNumber, warn, isNull, isArray } from "../shared";
 import { Component } from "./component";
 import { setProps } from "./props";
 import {
@@ -13,7 +13,7 @@ import {
   Reactive,
   Derived,
 } from "./jsx-element";
-import { reaction } from "mobx";
+import { proxyCallbacks } from "./h";
 
 // TODO: refactor these into a separate directory
 export type HostElement = HTMLElement;
@@ -55,8 +55,6 @@ function getNodeRenderer(node: JSXElement): RenderNode {
       return renderTextNode;
     case Reactive:
       return renderReactiveNode;
-    case Derived:
-      return renderDerivedNode;
     default:
       return isFunction(node.type) ? renderComponentNode : renderElementNode;
   }
@@ -74,7 +72,22 @@ function renderComponentNode(node: JSXElement, container: HostElement) {
   const setup = type as Component;
 
   // TODO: activate reactive context to collect reactive effect during setup stage
-  const renderResult = untrack(() => setup({ ...props, children }));
+  const renderResult = untrack(() => setup(readonly(proxyCallbacks(props)), { children }));
+
+  /**
+   * {
+   *    message: () => "sample",
+   *    a: () => Ref<number>(111),
+   * }
+   *
+   * =>
+   *
+   * {
+   *    message: "sample",
+   *    a: 111,
+   * }
+   *
+   */
 
   // TODO: setup component
   const context = null;
@@ -100,26 +113,29 @@ function renderComponentNode(node: JSXElement, container: HostElement) {
   // TODO: deactivate reactive context
 }
 
-function renderDerivedNode(node: JSXElement, container: HostElement) {
-  const { children } = node;
-
-  // TODO: should track dependency of derived element
-  const derived = (children[0] as Function)() as string;
-
-  const el = createTextElement(derived);
-
-  insertElement(container, el);
-}
-
 function renderReactiveNode(node: JSXElement, container: HostElement) {
   const { children } = node;
 
+  let isMounted = false;
+  let el: HostElement | HostText;
   // TODO: should track dependency of derived element
-  const derived = (children[0] as Ref).value as string;
+  effect(() => {
+    const derived: Array<any> | string | JSXElement = (children[0] as Function)();
 
-  const el = createTextElement(derived);
+    if (isArray(derived)) {
+      return renderChildren(derived, container);
+    } else if (isJSXElement(derived)) {
+      return warn(`JSX expression should not contain JSX element.`);
+    }
 
-  insertElement(container, el);
+    if (!isMounted) {
+      isMounted = true;
+      el = createTextElement(derived as string);
+      insertElement(container, el);
+    } else {
+      el.textContent = derived as string;
+    }
+  });
 }
 
 function renderElementNode(node: JSXElement, container: HostElement) {
@@ -153,12 +169,7 @@ function renderChild(child: Child, container: HostElement): void {
     return initNode(child as JSXElement, container);
   }
 
-  // if (isFunction(child)) {
-  //   const derivedElement = createJSXElement(Derived, EMPTY_OBJ, child);
-  //   return initNode(derivedElement, container);
-  // }
-
-  if (isRef(child)) {
+  if (isFunction(child)) {
     const reactiveElement = createJSXElement(Reactive, EMPTY_OBJ, child);
     return initNode(reactiveElement, container);
   }

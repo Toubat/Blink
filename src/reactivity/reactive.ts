@@ -18,6 +18,8 @@ export const enum TargetType {
   COLLECTION = 2,
 }
 
+export let allowReadonlyMutation = false;
+
 function targetTypeMap(rawType: string) {
   switch (rawType) {
     case "Object":
@@ -120,4 +122,12 @@ export function createReactiveProxy(target, isShallow: boolean, isReadonly: bool
   const handler = targetType === TargetType.COLLECTION ? collectionHandler : baseHandler;
 
   return new Proxy(target, handler);
+}
+
+export function setReadonlyMutation(value: boolean) {
+  allowReadonlyMutation = value;
+}
+
+export function isReadonlyMutationAllowed() {
+  return allowReadonlyMutation;
 }

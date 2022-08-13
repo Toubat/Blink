@@ -1,12 +1,31 @@
-import { createView, ref, reactive, FC } from "../../../dist";
+import {
+  createView,
+  ref,
+  reactive,
+  JSXElement,
+  createJSXElement,
+  computed,
+  effect,
+} from "../../../dist";
 
 const app = document.querySelector<HTMLDivElement>("#app") as HTMLDivElement;
 
 export interface AppProps {
   a: number;
+  message: string;
+  styles: {
+    class: string;
+    style: {
+      [key: string]: any;
+    };
+  };
 }
 
-const App: FC<AppProps> = ({ a, children }) => {
+export type FC<T extends object = any> = {
+  (props: T, context: { children?: any }): JSXElement;
+};
+
+const App: FC<AppProps> = (props, { children }) => {
   const c = ref("green");
 
   setTimeout(() => {
@@ -27,23 +46,23 @@ const App: FC<AppProps> = ({ a, children }) => {
           color: c.value,
         }}
       >
-        App obj style
+        App obj style {props.message}
       </p>
-      Hello {a.value}
+      Hello {props.a}
       <ul>
-        <li>{a.value}</li>
+        <li {...props.styles}> --- {props.a} --- </li>
         <li
           class={{
-            blue: a.value % 2 === 0,
-            "bg-red": a.value % 2 === 0,
+            blue: props.a % 2 === 0,
+            "bg-red": props.a % 2 === 0,
           }}
         >
           object class
         </li>
-        <li class={["blue", a.value % 2 === 0 ? "bg-orange" : null]}>array class</li>
-        <button onClick={() => a.value++}>Click a</button>
+        <li class={["blue", props.a % 2 === 0 ? "bg-orange" : null]}>array class</li>
+        <button onClick={() => props.a++}>Click a</button>
       </ul>
-      {...children}
+      {children}
     </>
   );
 };
@@ -57,11 +76,15 @@ const JSX = () => {
     },
   });
 
+  createJSXElement("li", {
+    class: ["blue", true],
+  });
+
   return (
     <div>
       <p style={{ color: "green" }}>ASDASDASDASDAD</p>
       <button style={{ color: "red" }}>Click</button>
-      <App a={a}>
+      <App a={a.value} message="sample" styles={props}>
         <ol>
           <li>child {a.value}</li>
           <li>child {a.value}</li>
@@ -76,20 +99,53 @@ const JSX = () => {
       </button>
       <p {...props}>spread props</p>
       <p class="red">String Literal Attribute</p>
-      <button onClick={() => props.style.padding++}>+</button>
-      <button onClick={() => props.style.padding--}>-</button>
+      <button onClick={() => (props.style.padding += 2)}>+</button>
+      <button onClick={() => (props.style.padding -= 2)}>-</button>
+      {[1, 2, 3].map((item) => (
+        <p key={item}>{item}</p>
+      ))}
     </div>
   );
 };
 
-const view = createView(<JSX />);
+const Counter = () => {
+  const count = ref(0);
+  const power = computed(() => count.value ** 2);
 
-view.render(app);
+  effect(() => {
+    if (count.value % 2 === 0) {
+      console.log("even");
+    } else {
+      console.log("odd");
+    }
+  });
 
-const b = () => {
-  console.log("b");
+  return (
+    <div class="m-3 flex-row justify-center">
+      <div
+        class={[
+          "text-2xl",
+          "font-medium",
+          "text-center",
+          "transition-all",
+          "mb-2 p-2",
+          count.value % 2 == 0 ? "bg-teal-400" : undefined,
+        ]}
+      >
+        <p>Power: {power.value}</p>
+        <p>Count: {count.value}</p>
+      </div>
+      <div class="flex justify-center space-x-3">
+        <button class="btn" onClick={() => count.value++}>
+          +
+        </button>
+        <button class="btn" onClick={() => count.value--}>
+          -
+        </button>
+      </div>
+    </div>
+  );
 };
 
-const symbol = Symbol("asd");
-b[symbol] = 0;
-console.log(b());
+const view = createView(<Counter />);
+view.render(app);

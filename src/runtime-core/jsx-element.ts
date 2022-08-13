@@ -11,13 +11,7 @@ export const Fragment = Symbol("fragment");
 export const Reactive = Symbol("reactive");
 export const Derived = Symbol("derived");
 
-export type NodeType =
-  | string
-  | FC
-  | typeof Text
-  | typeof Fragment
-  | typeof Reactive
-  | typeof Derived;
+export type NodeType = string | FC | typeof Text | typeof Fragment | typeof Reactive;
 
 export type NodeProps = object;
 
@@ -43,7 +37,6 @@ export function createJSXElement(
     children: children || EMPTY_ARRAY,
     [JSX_ELEMENT]: true,
   };
-  console.log(node);
   return node;
 }
 

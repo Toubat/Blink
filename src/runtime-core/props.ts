@@ -78,8 +78,8 @@ const customPropPlugin = createPropPlugin<any, HostElement>({
 const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin, customPropPlugin];
 
 export function setProp<T extends HTMLElement>(key: string, value: any, el: T) {
-  if (isRef(value)) {
-    value = value.value;
+  if (isFunction(value)) {
+    value = value();
   }
   // use regex to match property name that needs customized behavior
   for (let plugin of plugins) {

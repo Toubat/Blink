@@ -19,17 +19,13 @@ export function blink() {
         } else {
           path
             .get("expression")
-            .replaceWith(
-              t.callExpression(t.identifier("Blink.r"), [
-                t.arrowFunctionExpression([], path.node.expression, false),
-              ])
-            );
+            .replaceWith(t.arrowFunctionExpression([], path.node.expression, false));
         }
       },
       JSXSpreadAttribute(path) {
         path
           .get("argument")
-          .replaceWith(t.callExpression(t.identifier("Blink.rs"), [path.node.argument]));
+          .replaceWith(t.callExpression(t.identifier("Blink.cs"), [path.node.argument]));
       },
     },
   };

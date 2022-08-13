@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.btn {
+  @apply border px-6 py-1 rounded-md bg-blue-400 hover:bg-blue-600 transition-all duration-200 ease-in-out
+  active:bg-blue-500 active:ring-2 text-white text-xl font-bold;
+}
