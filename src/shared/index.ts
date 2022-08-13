@@ -6,6 +6,8 @@ export const EMPTY_OBJ = {};
 
 export const EMPTY_ARRAY = [];
 
+export const EMPTY_STRING = "";
+
 export const isNull = (val: unknown) => {
   return val === null || val === undefined;
 };

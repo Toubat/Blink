@@ -1,106 +1,86 @@
-import { effect, unRef, proxyRef, UnwrapNestedRefs, Ref, isRef } from "../index";
-import { isArray, isNull, isObject, isString, isFunction, toDerivedValue } from "../shared";
-import { HostElement, setBaseProp } from "./renderer";
+import { effect } from "../reactivity";
+import { isString, toDerivedValue } from "../shared";
+
+export type SetBasePropFn<V> = (key: string, value: any, prevValue: any, el: V) => void;
+
+export type SetPropsOptions<V> = {
+  props: object;
+  el: V;
+  setBaseProp: SetBasePropFn<V>;
+  plugins?: BlinkPropPlugin<any, V>[];
+};
+
+export type SetPropOptions<V> = {
+  key: string;
+  value: any;
+  prevValue: any;
+  el: V;
+  setBaseProp: SetBasePropFn<V>;
+  plugins?: BlinkPropPlugin<any, V>[];
+};
+
+export type SetupPropOptions<T, V> = {
+  key: string;
+  value: T;
+  prevValue: T;
+  el: V;
+  setBaseProp: SetBasePropFn<V>;
+};
 
 export type PropPluginOptions<T, V> = {
   key: RegExp | string;
-  setup: (key: string, value: T, prevValue: T, element: V) => void;
+  setup: (options: SetupPropOptions<T, V>) => void;
 };
 
-export type BlinkPropPlugin<T, V> = (
-  propKey: string,
-  propValue: T,
-  prevValue,
-  element: V
-) => boolean;
+export type BlinkPropPlugin<T = any, V = any> = (options: SetupPropOptions<T, V>) => boolean;
 
 export function createPropPlugin<T, V>(options: PropPluginOptions<T, V>): BlinkPropPlugin<T, V> {
-  const { key, setup: patch } = options;
+  const { key, setup } = options;
 
-  return (propKey: string, propValue: T, prevValue: T, element: V) => {
+  return ({ key: propKey, value, prevValue, el, setBaseProp }) => {
     // check if the prop key matches the key provided by the plugin
     const matched = isString(key) ? propKey === key : (key as RegExp).test(propKey);
     if (!matched) return false;
 
-    patch(propKey, propValue, prevValue, element);
+    setup({ key: propKey, value, prevValue, el, setBaseProp });
     return true;
   };
 }
 
-export function setProps<T extends HTMLElement>(props: object, el: T) {
+export function setProps<V>({ props, el, setBaseProp, plugins = [] }: SetPropsOptions<V>) {
   for (let key in props) {
     let prevValue;
 
     effect(() => {
-      console.log(prevValue);
-
       const value = toDerivedValue(props[key]);
       if (prevValue !== value) {
-        setProp(key, value, prevValue, el);
-        prevValue = value;
+        setProp({ key, value, prevValue, el, setBaseProp, plugins });
       }
+      prevValue = value;
     });
   }
 }
 
-const stylePropPlugin = createPropPlugin<object | string, HTMLElement>({
-  key: "style",
-  setup(key, value, prevValue, el) {
-    if (isString(value)) {
-      el.style.cssText = value as string;
-    } else if (isObject(value)) {
-      Object.entries(value).forEach(([key, value]) =>
-        el.style.setProperty(key, isString(value) ? value : `${value}px`)
-      );
-    }
-  },
-});
-
-const classPropPlugin = createPropPlugin<string | any[] | Record<string, boolean>, HTMLElement>({
-  key: "class",
-  setup(key, value, prevValue, el) {
-    let className: string | undefined;
-
-    if (isString(value)) {
-      className = value as string;
-    } else if (isArray(value)) {
-      className = value.filter((className) => !!className).join(" ");
-    } else if (isObject(value)) {
-      className = Object.entries(value)
-        .map(([className, active]) => (active ? className : undefined))
-        .filter((className) => !!className)
-        .join(" ");
-    }
-    setBaseProp(el, key, className ? className : undefined, prevValue);
-  },
-});
-
-const listenerPropPlugin = createPropPlugin<(event: Event) => void, HTMLElement>({
-  key: /^on[A-Z]/,
-  setup(key, value, prevValue, el) {
-    const eventName = key.slice(2).toLowerCase();
-
-    // remove previous listener if it exists
-    isFunction(prevValue) && el.removeEventListener(eventName, prevValue);
-    // add current listener
-    el.addEventListener(eventName, value);
-  },
-});
-
-const customPropPlugin = createPropPlugin<any, HTMLElement>({
-  key: /^(use):[a-z]/,
-  setup(key, value, prevValue, el) {
-    const [, customKey] = key.split(":");
-    setBaseProp(el, customKey, value, prevValue);
-  },
-});
-
-const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin, customPropPlugin];
-
-export function setProp<T extends HTMLElement>(key: string, value: any, prevValue: any, el: T) {
+export function setProp<V>({
+  key,
+  value,
+  prevValue,
+  el,
+  setBaseProp,
+  plugins = [],
+}: SetPropOptions<V>) {
   // use regex to match property name that needs customized behavior
   for (let plugin of plugins) {
-    if (plugin(key, value, prevValue, el)) return;
+    if (
+      plugin({
+        key,
+        value,
+        prevValue,
+        el,
+        setBaseProp,
+      })
+    )
+      return;
   }
-  setBaseProp(el, key, value, prevValue);
+  setBaseProp(key, value, prevValue, el);
 }

@@ -1,5 +1,4 @@
-import { computed, effect } from "../../../dist";
-import { FC } from "./main";
+import { computed, effect, FC } from "../../../dist";
 
 export interface CounterProps {
   count: number;

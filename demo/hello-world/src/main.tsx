@@ -1,4 +1,4 @@
-import { createView, ref, reactive, JSXElement } from "../../../dist";
+import { createView, ref, reactive, FC } from "../../../dist";
 import { Counter } from "./Counter";
 
 const app = document.querySelector<HTMLDivElement>("#app") as HTMLDivElement;
@@ -14,12 +14,11 @@ export interface AppProps {
   };
 }
 
-export type FC<T extends object = any> = {
-  (props: T, context: { children?: any }): JSXElement;
-};
-
 const App: FC<AppProps> = (props, { children }) => {
   const c = ref("green");
+  const style = reactive<{ style: string | object }>({
+    style: "color: orange;",
+  });
 
   setTimeout(() => {
     c.value = "blue";
@@ -27,13 +26,19 @@ const App: FC<AppProps> = (props, { children }) => {
 
   return (
     <>
-      <p
-        {...{
-          style: "color: orange",
-        }}
-      >
+      <p class="text-3xl px-3" {...style}>
         App
       </p>
+      <button
+        class="btn"
+        onClick={() =>
+          (style.style = {
+            padding: 20,
+          })
+        }
+      >
+        Set Attrs
+      </button>
       <p
         style={{
           color: c.value,
@@ -73,7 +78,7 @@ const JSX = () => {
   });
 
   return (
-    <div>
+    <>
       <p style={{ color: "green" }}>ASDASDASDASDAD</p>
       <button style={{ color: "red" }}>Click</button>
       <Counter count={a.value} increment={() => a.value++} decrement={() => a.value--} />
@@ -98,16 +103,7 @@ const JSX = () => {
       <input
         class="border-2 m-2"
         value={message}
-        // onInput={(e) => (message.value = e.target.value)}
-        onInput={
-          a.value % 2 === 0
-            ? (e) => {
-                message.value += e.target.value.slice(0, 1);
-              }
-            : (e) => {
-                message.value = e.target.value;
-              }
-        }
+        onInput={(e) => (message.value = e.target.value)}
       />
       <button class="btn" onClick={() => (props.style.padding += 2)}>
         +
@@ -115,7 +111,7 @@ const JSX = () => {
       <button class="btn" onClick={() => (props.style.padding -= 2)}>
         -
       </button>
-    </div>
+    </>
   );
 };
 

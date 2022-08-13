@@ -1,10 +1,14 @@
-import { JSXElement } from "./jsx-element";
-import { renderRoot } from "./renderer";
+import { JSXElement } from "./element";
+import { Renderer } from "./renderer";
 
-export function createView(rootComponent: JSXElement) {
-  return {
-    render(container: HTMLElement) {
-      renderRoot(rootComponent, container);
-    },
+export function createViewWithRenderer<HostElement, HostText>(
+  renderer: Renderer<HostElement, HostText>
+) {
+  return function createView(rootComponent: JSXElement) {
+    return {
+      render(container: HostElement) {
+        renderer.renderRoot(rootComponent, container);
+      },
+    };
   };
 }
