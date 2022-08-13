@@ -1,4 +1,4 @@
-import { effect } from "../reactivity";
+import { effect, toRaw } from "../reactivity";
 import { isString, toDerivedValue } from "../shared";
 
 export type SetBasePropFn<V> = (key: string, value: any, prevValue: any, el: V) => void;
@@ -53,10 +53,11 @@ export function setProps<V>({ props, el, setBaseProp, plugins = [] }: SetPropsOp
 
     effect(() => {
       const value = toDerivedValue(props[key]);
-      if (prevValue !== value) {
-        setProp({ key, value, prevValue, el, setBaseProp, plugins });
-      }
-      prevValue = value;
+      setProp({ key, value, prevValue, el, setBaseProp, plugins });
+
+      // important to turn off tracking for prevValue to avoid
+      // unnecessary dependency tracking and falsly effect triggering
+      prevValue = toRaw(value);
     });
   }
 }

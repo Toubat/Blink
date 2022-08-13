@@ -1,6 +1,7 @@
 import { isArray, isFunction, isObject, isString } from "../shared";
 import { createPropPlugin } from "../runtime-core/props";
 import { normalizeClassName, normalizeStyle } from "./utils";
+import { untrack } from "../reactivity";
 
 const stylePropPlugin = createPropPlugin<object | string, HTMLElement>({
   key: "style",
@@ -8,9 +9,8 @@ const stylePropPlugin = createPropPlugin<object | string, HTMLElement>({
     const style = normalizeStyle(value);
     const prevStyle = normalizeStyle(prevValue);
 
-    if (style !== prevStyle) {
-      setBaseProp(key, style, prevStyle, el);
-    }
+    if (style === prevStyle) return;
+    setBaseProp(key, style, prevStyle, el);
   },
 });
 
@@ -20,9 +20,8 @@ const classPropPlugin = createPropPlugin<string | any[] | Record<string, boolean
     const className = normalizeClassName(value);
     const prevClassName = normalizeClassName(prevValue);
 
-    if (className !== prevClassName) {
-      setBaseProp(key, className, prevClassName, el);
-    }
+    if (className === prevClassName) return;
+    setBaseProp(key, className, prevClassName, el);
   },
 });
 

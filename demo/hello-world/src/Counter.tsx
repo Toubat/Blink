@@ -26,7 +26,7 @@ export const Counter: FC<CounterProps> = (props) => {
           "text-center",
           "transition-all",
           "mb-2 p-2",
-          props.count % 2 == 0 ? "bg-teal-400" : undefined,
+          props.count % 2 === 0 ? "bg-teal-400" : undefined,
         ]}
       >
         <p>Power: {power}</p>
