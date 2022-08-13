@@ -8,11 +8,6 @@ export function blink() {
   return {
     name: "blink",
     visitor: {
-      JSXAttribute(path) {
-        if (t.isStringLiteral(path.node.value)) {
-          path.get("value").replaceWith(t.jsxExpressionContainer(path.node.value));
-        }
-      },
       JSXExpressionContainer(path) {
         if (t.isJSXEmptyExpression(path.node.expression)) {
           path.remove();

@@ -1,3 +1,5 @@
+import { unRef } from "../reactivity";
+
 export const NOOP = () => {};
 
 export const EMPTY_OBJ = {};
@@ -37,6 +39,10 @@ export const hasOwn = (val: object, key: string | symbol): key is keyof typeof v
 
 export const toRawType = (value: unknown): string => {
   return toTypeString(value).slice(8, -1);
+};
+
+export const toDerivedValue = (value: unknown) => {
+  return unRef(isFunction(value) ? (value as Function)() : value);
 };
 
 export const toTypeString = (value: unknown): string => {

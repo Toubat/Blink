@@ -1,12 +1,5 @@
-import {
-  createView,
-  ref,
-  reactive,
-  JSXElement,
-  createJSXElement,
-  computed,
-  effect,
-} from "../../../dist";
+import { createView, ref, reactive, JSXElement } from "../../../dist";
+import { Counter } from "./Counter";
 
 const app = document.querySelector<HTMLDivElement>("#app") as HTMLDivElement;
 
@@ -60,7 +53,9 @@ const App: FC<AppProps> = (props, { children }) => {
           object class
         </li>
         <li class={["blue", props.a % 2 === 0 ? "bg-orange" : null]}>array class</li>
-        <button onClick={() => props.a++}>Click a</button>
+        <button class="btn" onClick={() => props.a++}>
+          Click a
+        </button>
       </ul>
       {children}
     </>
@@ -68,7 +63,8 @@ const App: FC<AppProps> = (props, { children }) => {
 };
 
 const JSX = () => {
-  const a = ref(111);
+  const a = ref(0);
+  const message = ref("Hello");
   const props = reactive({
     class: "red",
     style: {
@@ -76,21 +72,20 @@ const JSX = () => {
     },
   });
 
-  createJSXElement("li", {
-    class: ["blue", true],
-  });
-
   return (
     <div>
       <p style={{ color: "green" }}>ASDASDASDASDAD</p>
       <button style={{ color: "red" }}>Click</button>
+      <Counter count={a.value} increment={() => a.value++} decrement={() => a.value--} />
       <App a={a.value} message="sample" styles={props}>
-        <ol>
-          <li>child {a.value}</li>
+        <ol style={{ display: a.value % 2 == 0 ? "none" : "inline" }}>
+          <li>child {a}</li>
           <li>child {a.value}</li>
         </ol>
       </App>
+      {<div>123</div>}
       <button
+        class="btn"
         onClick={() => {
           a.value++;
         }}
@@ -99,53 +94,30 @@ const JSX = () => {
       </button>
       <p {...props}>spread props</p>
       <p class="red">String Literal Attribute</p>
-      <button onClick={() => (props.style.padding += 2)}>+</button>
-      <button onClick={() => (props.style.padding -= 2)}>-</button>
-      {[1, 2, 3].map((item) => (
-        <p key={item}>{item}</p>
-      ))}
+      <p>{message}</p>
+      <input
+        class="border-2 m-2"
+        value={message}
+        // onInput={(e) => (message.value = e.target.value)}
+        onInput={
+          a.value % 2 === 0
+            ? (e) => {
+                message.value += e.target.value;
+              }
+            : (e) => {
+                message.value = e.target.value;
+              }
+        }
+      />
+      <button class="btn" onClick={() => (props.style.padding += 2)}>
+        +
+      </button>
+      <button class="btn" onClick={() => (props.style.padding -= 2)}>
+        -
+      </button>
     </div>
   );
 };
 
-const Counter = () => {
-  const count = ref(0);
-  const power = computed(() => count.value ** 2);
-
-  effect(() => {
-    if (count.value % 2 === 0) {
-      console.log("even");
-    } else {
-      console.log("odd");
-    }
-  });
-
-  return (
-    <div class="m-3 flex-row justify-center">
-      <div
-        class={[
-          "text-2xl",
-          "font-medium",
-          "text-center",
-          "transition-all",
-          "mb-2 p-2",
-          count.value % 2 == 0 ? "bg-teal-400" : undefined,
-        ]}
-      >
-        <p>Power: {power.value}</p>
-        <p>Count: {count.value}</p>
-      </div>
-      <div class="flex justify-center space-x-3">
-        <button class="btn" onClick={() => count.value++}>
-          +
-        </button>
-        <button class="btn" onClick={() => count.value--}>
-          -
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const view = createView(<Counter />);
+const view = createView(<JSX />);
 view.render(app);

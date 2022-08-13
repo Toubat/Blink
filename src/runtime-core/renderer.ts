@@ -1,6 +1,14 @@
 import { effect, isReadonly, isRef, proxyRef, readonly, Ref, unRef, untrack } from "../reactivity";
-import { isString, isFunction, EMPTY_OBJ, isNumber, warn, isNull, isArray } from "../shared";
-import { Component } from "./component";
+import {
+  isString,
+  isFunction,
+  EMPTY_OBJ,
+  isNumber,
+  warn,
+  isNull,
+  isArray,
+  toDerivedValue,
+} from "../shared";
 import { setProps } from "./props";
 import {
   createJSXElement,
@@ -14,6 +22,7 @@ import {
   Derived,
 } from "./jsx-element";
 import { proxyCallbacks } from "./h";
+import { FC } from "./component";
 
 // TODO: refactor these into a separate directory
 export type HostElement = HTMLElement;
@@ -69,7 +78,7 @@ function renderFragmentNode(node: JSXElement, container: HostElement) {
 function renderComponentNode(node: JSXElement, container: HostElement) {
   const { type, props, children } = node;
 
-  const setup = type as Component;
+  const setup = type as FC;
 
   // TODO: activate reactive context to collect reactive effect during setup stage
   const renderResult = untrack(() => setup(readonly(proxyCallbacks(props)), { children }));
@@ -120,7 +129,7 @@ function renderReactiveNode(node: JSXElement, container: HostElement) {
   let el: HostElement | HostText;
   // TODO: should track dependency of derived element
   effect(() => {
-    const derived: Array<any> | string | JSXElement = (children[0] as Function)();
+    const derived: Array<any> | string | JSXElement = toDerivedValue(children[0]);
 
     if (isArray(derived)) {
       return renderChildren(derived, container);

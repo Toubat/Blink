@@ -1,5 +1,5 @@
-import { computed, isReadonly, proxyRef, readonly, Ref, ToRefs, UnwrapRef } from "../index";
-import { bind, error, isFunction, isPrimitive, warn } from "../shared";
+import { computed, isReadonly, proxyRef, readonly, Ref, ToRefs, unRef, UnwrapRef } from "../index";
+import { bind, error, isFunction, isPrimitive, toDerivedValue, warn } from "../shared";
 import { createJSXElement } from "./jsx-element";
 
 export const h = createJSXElement;
@@ -52,7 +52,7 @@ export function proxyCallbacks<T extends object>(target: T): ToValues<T> {
     get(target, key) {
       const value = bind(target, Reflect.get(target, key));
 
-      return isFunction(value) ? value() : value;
+      return toDerivedValue(value);
     },
     set(_, key) {
       warn(`Cannot set key "${String(key)}" on readonly object`);
