@@ -102,7 +102,7 @@ const JSX = () => {
         onInput={
           a.value % 2 === 0
             ? (e) => {
-                message.value += e.target.value;
+                message.value += e.target.value.slice(0, 1);
               }
             : (e) => {
                 message.value = e.target.value;

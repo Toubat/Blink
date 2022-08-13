@@ -36,7 +36,7 @@ export const insertElement = (
 ) => {
   container.insertBefore(el, anchor || null);
 };
-export const setBaseProp = (container: HostElement, prop: string, value: any) => {
+export const setBaseProp = (container: HostElement, prop: string, value: any, prevValue: any) => {
   isNull(value) ? container.removeAttribute(prop) : container.setAttribute(prop, value);
 };
 
