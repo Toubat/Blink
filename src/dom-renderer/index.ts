@@ -2,7 +2,6 @@ import { createViewWithRenderer } from "../runtime-core";
 import { createRenderer, Renderer } from "../runtime-core/renderer";
 import { EMPTY_STRING, isNull } from "../shared";
 import { plugins } from "./plugins";
-import { normalizeStyle } from "./utils";
 
 const renderer = createRenderer<HTMLElement, Text>({
   createElement(tag) {

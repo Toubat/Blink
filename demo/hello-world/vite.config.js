@@ -18,8 +18,8 @@ export default defineConfig({
   esbuild: {
     loader: "tsx",
     include: /src\/.*\.[tj]sx?$/,
-    jsxInject: `import * as Blink from '../../../dist';`,
-    jsxFactory: "Blink.h",
-    jsxFragment: "Blink.Fragment",
+    jsxInject: `import { h, NodeFlags, cs } from '../../../dist';`,
+    jsxFactory: "h",
+    jsxFragment: "NodeFlags.FRAGMENT_NODE",
   },
 });

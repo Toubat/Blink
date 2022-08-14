@@ -1,7 +1,5 @@
-import { createView, ref, reactive, FC } from "../../../dist";
+import { createView, ref, reactive, FC, Fragment } from "../../../dist";
 import { Counter } from "./Counter";
-
-const app = document.querySelector<HTMLDivElement>("#app") as HTMLDivElement;
 
 export interface AppProps {
   a: number;
@@ -25,7 +23,7 @@ const App: FC<AppProps> = (props, { children }) => {
   }, 1000);
 
   return (
-    <>
+    <Fragment>
       <p class="text-3xl px-3" {...style}>
         App
       </p>
@@ -61,9 +59,10 @@ const App: FC<AppProps> = (props, { children }) => {
         <button class="btn" onClick={() => props.a++}>
           Click a
         </button>
+        {[1, 2, 3, props.a % 2 === 0 ? "red" : "blue"]}
+        {...children}
       </ul>
-      {children}
-    </>
+    </Fragment>
   );
 };
 
@@ -78,7 +77,7 @@ const JSX = () => {
   });
 
   return (
-    <>
+    <Fragment>
       <p style={{ color: "green" }}>ASDASDASDASDAD</p>
       <button style={{ color: "red" }}>Click</button>
       <Counter count={a.value} increment={() => a.value++} decrement={() => a.value--} />
@@ -111,9 +110,8 @@ const JSX = () => {
       <button class="btn" onClick={() => (props.style.padding -= 2)}>
         -
       </button>
-    </>
+    </Fragment>
   );
 };
 
-const view = createView(<JSX />);
-view.render(app);
+createView(<JSX />).render(document.querySelector<HTMLDivElement>("#app") as HTMLDivElement);

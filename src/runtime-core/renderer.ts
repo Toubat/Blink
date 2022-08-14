@@ -1,26 +1,7 @@
 import { derived, effect, readonly, untrack } from "../reactivity";
-import {
-  isString,
-  isFunction,
-  EMPTY_OBJ,
-  isNumber,
-  warn,
-  isNull,
-  isArray,
-  toDerivedValue,
-} from "../shared";
+import { isFunction, warn, isArray, toDerivedValue, error, isObject } from "../shared";
 import { BlinkPropPlugin, SetBasePropFn, setProps } from "./props";
-import {
-  createJSXElement,
-  isJSXElement,
-  NodeChildren,
-  JSXElement,
-  Child,
-  Text,
-  Fragment,
-  Reactive,
-  Derived,
-} from "./element";
+import { isJSXElement, JSXElement, NodeChild, NodeFlags, normalizeChildren } from "./element";
 import { FC } from "./component";
 
 export interface RendererOptions<HostElement, HostText> {
@@ -54,19 +35,20 @@ export function createRenderer<HostElement, HostText>({
   }
 
   function initNode(node: JSXElement, container: HostElement) {
-    // { type, props, children } = vnode
-
+    if (!isJSXElement(node)) {
+      error(`"${typeof node}" is not a valid JSX element.`);
+    }
     const renderNode = getNodeRenderer(node);
     renderNode(node, container);
   }
 
   function getNodeRenderer(node: JSXElement): RenderNode {
     switch (node.type) {
-      case Fragment:
+      case NodeFlags.FRAGMENT_NODE:
         return renderFragmentNode;
-      case Text:
+      case NodeFlags.TEXT_NODE:
         return renderTextNode;
-      case Reactive:
+      case NodeFlags.REACTIVE_NODE:
         return renderReactiveNode;
       default:
         return isFunction(node.type) ? renderComponentNode : renderElementNode;
@@ -122,7 +104,7 @@ export function createRenderer<HostElement, HostText>({
     //   }
     // );
 
-    renderChild(renderResult, container);
+    initNode(renderResult, container);
     // TODO: deactivate reactive context
   }
 
@@ -133,20 +115,19 @@ export function createRenderer<HostElement, HostText>({
     let el: HostText;
     // TODO: should track dependency of derived element
     effect(() => {
-      const derived: Array<any> | string | JSXElement = toDerivedValue(children[0]);
+      const derived = toDerivedValue(children[0]);
+      const displayValue = isObject(derived) ? JSON.stringify(derived) : derived;
 
-      if (isArray(derived)) {
-        return renderChildren(derived, container);
-      } else if (isJSXElement(derived)) {
+      if (isJSXElement(derived)) {
         return warn(`JSX expression should not contain JSX element.`);
       }
 
       if (!isMounted) {
         isMounted = true;
-        el = createTextElement(derived as string);
+        el = createTextElement(displayValue);
         insertElement(container, el);
       } else {
-        setTextContent(el, derived as string);
+        setTextContent(el, displayValue);
       }
     });
   }
@@ -176,31 +157,10 @@ export function createRenderer<HostElement, HostText>({
     insertElement(container, el);
   }
 
-  function renderChildren(children: NodeChildren, container: HostElement) {
+  function renderChildren(children: NodeChild[], container: HostElement) {
     children.forEach((child) => {
-      renderChild(child, container);
+      initNode(child as JSXElement, container);
     });
-  }
-
-  function renderChild(child: Child, container: HostElement): void {
-    if (isJSXElement(child)) {
-      return initNode(child as JSXElement, container);
-    }
-
-    if (isFunction(child)) {
-      const reactiveElement = createJSXElement(Reactive, EMPTY_OBJ, child);
-      return initNode(reactiveElement, container);
-    }
-
-    if (isString(child) || isNumber(child)) {
-      const textElement = createJSXElement(Text, EMPTY_OBJ, child);
-      return initNode(textElement, container);
-    }
-
-    // possiblly empty JSX expression
-    if (isNull(child)) return;
-
-    warn(`"${typeof child}" is not a valid JSX element.`);
   }
 
   return {

@@ -20,7 +20,7 @@ export function blink() {
       JSXSpreadAttribute(path) {
         path
           .get("argument")
-          .replaceWith(t.callExpression(t.identifier("Blink.cs"), [path.node.argument]));
+          .replaceWith(t.callExpression(t.identifier("cs"), [path.node.argument]));
       },
     },
   };
