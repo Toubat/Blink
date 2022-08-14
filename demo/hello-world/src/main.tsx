@@ -25,7 +25,7 @@ const App: FC<AppProps> = (props, { children }) => {
   return (
     <Fragment>
       <p class="text-3xl px-3" {...style}>
-        App
+        {style}
       </p>
       <button
         class="btn"

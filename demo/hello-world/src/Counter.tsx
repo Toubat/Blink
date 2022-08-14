@@ -1,4 +1,4 @@
-import { computed, effect, FC } from "../../../dist";
+import { effect, FC } from "../../../dist";
 
 export interface CounterProps {
   count: number;
@@ -7,8 +7,6 @@ export interface CounterProps {
 }
 
 export const Counter: FC<CounterProps> = (props) => {
-  const power = computed(() => props.count ** 2);
-
   effect(() => {
     if (props.count % 2 === 0) {
       console.log("even");
@@ -29,7 +27,7 @@ export const Counter: FC<CounterProps> = (props) => {
           props.count % 2 === 0 ? "bg-teal-400" : undefined,
         ]}
       >
-        <p>Power: {power}</p>
+        <p>Power: {props.count ** 2}</p>
         <p>Count: {props.count}</p>
       </div>
       <div class="flex justify-center space-x-3">

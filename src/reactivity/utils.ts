@@ -1,6 +1,6 @@
 import { bind, error, isFunction, toDerivedValue, warn } from "../shared";
 import { computed } from "./computed";
-import { proxyRef, Ref, ToRefs, UnwrapRef } from "./ref";
+import { proxyRef, ref, Ref, ToRefs, UnwrapRef } from "./ref";
 
 /**
  * Convert object values into void callbacks that capture object value.
@@ -16,7 +16,7 @@ export type ToCallback<T> = () => T;
 export type ToValues<T extends object> = {
   [key in keyof T]: ToValue<T[key]>;
 };
-export type ToValue<T> = T extends () => infer V ? V : T;
+export type ToValue<T> = T extends () => infer V ? UnwrapRef<V> : UnwrapRef<T>;
 
 export function r<T>(fn: () => T): Ref<UnwrapRef<T>> {
   if (!isFunction(fn)) {

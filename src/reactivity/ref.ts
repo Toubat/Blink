@@ -9,6 +9,8 @@ export type Ref<T = any> = {
   [ReactiveFlag.REF]: true;
 };
 
+export type UnRef<T> = T extends Ref<infer V> ? V : T;
+
 /**
  * Convert object values into computed refs that capture object value.
  */
@@ -63,10 +65,12 @@ function toReactive(value) {
   return isObject(value) ? reactive(value) : value;
 }
 
+export function isRef<T>(target: T): boolean;
 export function isRef(target) {
   return isObject(target) && !!target[ReactiveFlag.REF];
 }
 
+export function unRef<T>(target: T): UnRef<T>;
 export function unRef(target) {
   return isRef(target) ? target.value : target;
 }
