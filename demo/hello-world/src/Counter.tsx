@@ -1,4 +1,5 @@
 import { effect, FC } from "../../../dist";
+import { F } from "./main";
 
 export interface CounterProps {
   count: number;
@@ -6,7 +7,7 @@ export interface CounterProps {
   decrement: () => void;
 }
 
-export const Counter: FC<CounterProps> = (props) => {
+export const Counter = F<CounterProps>((props) => {
   effect(() => {
     if (props.count % 2 === 0) {
       console.log("even");
@@ -40,4 +41,4 @@ export const Counter: FC<CounterProps> = (props) => {
       </div>
     </div>
   );
-};
+});

@@ -64,11 +64,10 @@ export function createRenderer<HostElement, HostText>({
   function renderComponentNode(node: JSXElement, container: HostElement) {
     const { type, props, children } = node;
 
-    const setup = type as FC;
+    const setup = type as Function;
 
     // TODO: activate reactive context to collect reactive effect during setup stage
-    const renderResult = untrack(() => setup(readonly(derived(props)), { children }));
-
+    const renderResult = untrack(() => setup({ ...props, children }));
     /**
      * {
      *    message: () => "sample",

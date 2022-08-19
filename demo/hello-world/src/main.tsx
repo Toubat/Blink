@@ -1,4 +1,13 @@
-import { createView, ref, reactive, FC, Fragment } from "../../../dist";
+import {
+  createView,
+  ref,
+  reactive,
+  Fragment,
+  readonly,
+  derived,
+  Ref,
+  JSXElement,
+} from "../../../dist";
 import { Counter } from "./Counter";
 
 export interface AppProps {
@@ -12,7 +21,36 @@ export interface AppProps {
   };
 }
 
-const App: FC<AppProps> = (props, { children }) => {
+export interface Context {
+  children?: any[];
+  ref?: Ref;
+  emit?: any;
+}
+
+export type RawProps<T extends object> = {
+  [key in keyof T]: T[key];
+} & Context;
+
+export type Builder<T extends object> = (props: T, context: Context) => JSXElement;
+
+export function F<T extends object>(builder: Builder<T>) {
+  return function (rawProps: RawProps<T>) {
+    const props: any = {};
+    const context: any = {};
+
+    for (let [key, value] of Object.entries(rawProps)) {
+      if (key.startsWith("$") || key === "children" || key === "ref" || key === "emit") {
+        context[key] = value;
+      } else {
+        props[key] = value;
+      }
+    }
+
+    return builder(readonly(derived(props)), context);
+  };
+}
+
+const App = F<AppProps>((props, { children }) => {
   const c = ref("green");
   const style = reactive<{ style: string | object }>({
     style: "color: orange;",
@@ -60,13 +98,13 @@ const App: FC<AppProps> = (props, { children }) => {
           Click a
         </button>
         {[1, 2, 3, props.a % 2 === 0 ? "red" : "blue"]}
-        {...children}
+        {...children || []}
       </ul>
     </Fragment>
   );
-};
+});
 
-const JSX = () => {
+const JSX = F(() => {
   const a = ref(0);
   const message = ref("Hello");
   const props = reactive({
@@ -112,6 +150,6 @@ const JSX = () => {
       </button>
     </Fragment>
   );
-};
+});
 
 createView(<JSX />).render(document.querySelector<HTMLDivElement>("#app") as HTMLDivElement);
