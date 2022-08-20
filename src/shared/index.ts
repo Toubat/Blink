@@ -43,8 +43,10 @@ export const toRawType = (value: unknown): string => {
   return toTypeString(value).slice(8, -1);
 };
 
-export const toDerivedValue = (value: unknown) => {
-  return unRef(isFunction(value) ? (value as Function)() : value);
+export const toDerivedValue = (value: unknown, unref: boolean = true) => {
+  const invoked = isFunction(value) ? (value as Function)() : value;
+
+  return unref ? unRef(invoked) : invoked;
 };
 
 export const toTypeString = (value: unknown): string => {

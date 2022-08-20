@@ -1,5 +1,4 @@
-import { effect, FC } from "../../../dist";
-import { F } from "./main";
+import { effect, ref, F } from "../../../dist";
 
 export interface CounterProps {
   count: number;
@@ -7,7 +6,9 @@ export interface CounterProps {
   decrement: () => void;
 }
 
-export const Counter = F<CounterProps>((props) => {
+export const Counter = F<CounterProps>((props, { $emit, $ref }) => {
+  const amount = ref(2);
+
   effect(() => {
     if (props.count % 2 === 0) {
       console.log("even");
@@ -27,13 +28,22 @@ export const Counter = F<CounterProps>((props) => {
           "mb-2 p-2",
           props.count % 2 === 0 ? "bg-teal-400" : undefined,
         ]}
+        $ref={$ref}
       >
         <p>Power: {props.count ** 2}</p>
         <p>Count: {props.count}</p>
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => (amount.value = Number(e.target.value))}
+        />
       </div>
       <div class="flex justify-center space-x-3">
         <button class="btn" onClick={props.increment}>
           +
+        </button>
+        <button class="btn" onClick={() => $emit.update(amount.value)}>
+          Update
         </button>
         <button class="btn" onClick={props.decrement}>
           -

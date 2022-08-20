@@ -1,13 +1,4 @@
-import {
-  createView,
-  ref,
-  reactive,
-  Fragment,
-  readonly,
-  derived,
-  Ref,
-  JSXElement,
-} from "../../../dist";
+import { createView, ref, reactive, Fragment, F, shallowRef } from "../../../dist";
 import { Counter } from "./Counter";
 
 export interface AppProps {
@@ -18,35 +9,6 @@ export interface AppProps {
     style: {
       [key: string]: any;
     };
-  };
-}
-
-export interface Context {
-  children?: any[];
-  ref?: Ref;
-  emit?: any;
-}
-
-export type RawProps<T extends object> = {
-  [key in keyof T]: T[key];
-} & Context;
-
-export type Builder<T extends object> = (props: T, context: Context) => JSXElement;
-
-export function F<T extends object>(builder: Builder<T>) {
-  return function (rawProps: RawProps<T>) {
-    const props: any = {};
-    const context: any = {};
-
-    for (let [key, value] of Object.entries(rawProps)) {
-      if (key.startsWith("$") || key === "children" || key === "ref" || key === "emit") {
-        context[key] = value;
-      } else {
-        props[key] = value;
-      }
-    }
-
-    return builder(readonly(derived(props)), context);
   };
 }
 
@@ -106,6 +68,8 @@ const App = F<AppProps>((props, { children }) => {
 
 const JSX = F(() => {
   const a = ref(0);
+  const el = shallowRef<null | HTMLElement>(null);
+
   const message = ref("Hello");
   const props = reactive({
     class: "red",
@@ -118,7 +82,15 @@ const JSX = F(() => {
     <Fragment>
       <p style={{ color: "green" }}>ASDASDASDASDAD</p>
       <button style={{ color: "red" }}>Click</button>
-      <Counter count={a.value} increment={() => a.value++} decrement={() => a.value--} />
+      <Counter
+        count={a.value}
+        increment={() => a.value++}
+        decrement={() => a.value--}
+        $emit={{
+          update: (amount: number) => (a.value += amount),
+        }}
+        $ref={el}
+      />
       <App a={a.value} message="sample" styles={props}>
         <ol style={{ display: a.value % 2 == 0 ? "none" : "inline" }}>
           <li>child {a}</li>

@@ -3,6 +3,7 @@ import { isFunction, warn, isArray, toDerivedValue, error, isObject } from "../s
 import { BlinkPropPlugin, SetBasePropFn, setProps } from "./props";
 import { isJSXElement, JSXElement, NodeChild, NodeFlags, normalizeChildren } from "./element";
 import { FC } from "./component";
+import { finishMount, getMountedCallback } from "./mounted";
 
 export interface RendererOptions<HostElement, HostText> {
   createElement: (tag: string) => HostElement;
@@ -68,6 +69,7 @@ export function createRenderer<HostElement, HostText>({
 
     // TODO: activate reactive context to collect reactive effect during setup stage
     const renderResult = untrack(() => setup({ ...props, children }));
+    const mounted = getMountedCallback();
     /**
      * {
      *    message: () => "sample",
@@ -105,6 +107,10 @@ export function createRenderer<HostElement, HostText>({
 
     initNode(renderResult, container);
     // TODO: deactivate reactive context
+
+    // invoke life cycle hooks
+    mounted();
+    finishMount();
   }
 
   function renderReactiveNode(node: JSXElement, container: HostElement) {

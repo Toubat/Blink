@@ -1,7 +1,7 @@
-import { isArray, isFunction, isObject, isString } from "../shared";
+import { error, isArray, isFunction, isObject, isString } from "../shared";
 import { createPropPlugin } from "../runtime-core/props";
 import { normalizeClassName, normalizeStyle } from "./utils";
-import { untrack } from "../reactivity";
+import { isShallow, Ref, untrack } from "../reactivity";
 
 const stylePropPlugin = createPropPlugin<object | string, HTMLElement>({
   key: "style",
@@ -45,4 +45,21 @@ const customPropPlugin = createPropPlugin<any, HTMLElement>({
   },
 });
 
-export const plugins = [stylePropPlugin, classPropPlugin, listenerPropPlugin, customPropPlugin];
+const refPropPlugin = createPropPlugin<Ref<HTMLElement>, HTMLElement>({
+  key: "$ref",
+  setup({ value, el }) {
+    if (!isShallow(value)) {
+      error("$ref attribute should be accessed by shallow ref");
+      return;
+    }
+    value.value = el;
+  },
+});
+
+export const plugins = [
+  stylePropPlugin,
+  classPropPlugin,
+  listenerPropPlugin,
+  customPropPlugin,
+  refPropPlugin,
+];
