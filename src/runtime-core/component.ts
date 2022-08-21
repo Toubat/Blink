@@ -1,5 +1,5 @@
 import { derived, readonly, Ref } from "../reactivity";
-import { isFunction } from "../shared";
+import { EMPTY_ARRAY, EMPTY_OBJ, isFunction } from "../shared";
 import { JSXElement } from "./element";
 
 export interface FC<T extends object = any> {
@@ -23,7 +23,11 @@ export type Builder<T extends object> = (props: T, context: Context) => JSXEleme
 export function F<T extends object>(builder: Builder<T>) {
   return function (rawProps: RawProps<T>) {
     const props: any = {};
-    const context: any = {};
+    const context: any = {
+      $emit: EMPTY_OBJ,
+      $ref: undefined,
+      children: EMPTY_ARRAY,
+    };
 
     for (let [key, value] of Object.entries(rawProps)) {
       if (key.startsWith("$") || key === "children") {

@@ -1,4 +1,4 @@
-import { effect, ref, F } from "../../../dist";
+import { effect, ref, F, mounted } from "../../../dist";
 
 export interface CounterProps {
   count: number;
@@ -8,6 +8,12 @@ export interface CounterProps {
 
 export const Counter = F<CounterProps>((props, { $emit, $ref }) => {
   const amount = ref(2);
+
+  console.log("before mounted", $ref?.value);
+
+  mounted(() => {
+    console.log("mounted", $ref?.value);
+  });
 
   effect(() => {
     if (props.count % 2 === 0) {
@@ -42,7 +48,7 @@ export const Counter = F<CounterProps>((props, { $emit, $ref }) => {
         <button class="btn" onClick={props.increment}>
           +
         </button>
-        <button class="btn" onClick={() => $emit.update(amount.value)}>
+        <button class="btn" onClick={() => $emit?.update(amount.value)}>
           Update
         </button>
         <button class="btn" onClick={props.decrement}>
