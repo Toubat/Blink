@@ -106,7 +106,7 @@ const JSX = F(() => {
       >
         Click a
       </button>
-      <p {...props}>spread props</p>
+      <p {...props}>spread props (should be red)</p>
       <p class="red">String Literal Attribute</p>
       <p>{message}</p>
       <input
